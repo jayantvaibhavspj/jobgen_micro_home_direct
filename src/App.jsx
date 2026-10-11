@@ -4,6 +4,54 @@ import pageMarkup from "./site-content.html?raw";
 import "../styles.css";
 
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
+const pagePaths = {
+  home: "/index.html",
+  products: "/products.html",
+  about: "/about.html",
+  contact: "/contact.html"
+};
+
+function getCurrentPage() {
+  const path = window.location.pathname.toLowerCase();
+  if (path.endsWith("/products.html")) return "products";
+  if (path.endsWith("/about.html")) return "about";
+  if (path.endsWith("/contact.html")) return "contact";
+  return "home";
+}
+
+function resolveInternalHref(href, page) {
+  if (!href?.startsWith("#")) return href;
+  const target = href.slice(1);
+  const targetPage = {
+    categories: "products",
+    models: "products",
+    why: "about",
+    finance: "about",
+    locations: "contact",
+    faq: "contact",
+    contact: "contact"
+  }[target];
+  if (!targetPage) return href;
+  if (targetPage === page) return href;
+  return `${pagePaths[targetPage]}${href}`;
+}
+
+function shouldShowSection(node, page) {
+  const classes = (node.attribs?.class || "").split(/\s+/);
+  const id = node.attribs?.id;
+  const section = id || classes.find((name) => [
+    "hero", "transition-section", "categories", "why", "models",
+    "marquee-section", "uses", "locations", "partners", "faq", "contact"
+  ].includes(name));
+  const pageSections = {
+    home: ["hero", "transition-section", "categories", "why", "marquee-section", "uses"],
+    products: ["categories", "models", "faq"],
+    about: ["why", "marquee-section", "uses", "finance", "faq"],
+    contact: ["locations", "faq", "contact"]
+  };
+  return pageSections[page].includes(section);
+}
+
 const featuredModels = [
   {
     name: "3M Micro Pod",
@@ -200,6 +248,7 @@ function useParticles(pageRef, reducedMotion) {
 }
 
 function SiteMarkup({
+  page,
   menuOpen,
   onMenuToggle,
   onQuoteOpen,
@@ -225,6 +274,12 @@ function SiteMarkup({
       if (!node.attribs) return undefined;
 
       const props = attributesToProps(node.attribs);
+      if (node.name === "section" && !shouldShowSection(node, page)) return <></>;
+
+      if (node.name === "a" && node.attribs.href?.startsWith("#")) {
+        props.href = resolveInternalHref(node.attribs.href, page);
+      }
+
       if (node.name === "img" && node.attribs.id === "hero-feature-image") {
         props.src = featuredModels[featuredIndex].image;
         props.alt = featuredModels[featuredIndex].alt;
@@ -251,16 +306,9 @@ function SiteMarkup({
       }
 
       if (node.name === "a" && node.attribs["data-filter-category"]) {
+        props.href = `${pagePaths.products}?category=${encodeURIComponent(node.attribs["data-filter-category"])}#models`;
         return (
-          <a
-            {...props}
-            onClick={() => {
-              onFilterChange(node.attribs["data-filter-category"]);
-              onMenuToggle(false);
-            }}
-          >
-            {children}
-          </a>
+          <a {...props}>{children}</a>
         );
       }
 
@@ -507,7 +555,7 @@ function SiteMarkup({
       return undefined;
     }
   }), [
-    menuOpen, onMenuToggle, gallery, onGallerySelect, activeFilter, onFilterChange,
+    page, menuOpen, onMenuToggle, gallery, onGallerySelect, activeFilter, onFilterChange,
     featuredIndex, onFeaturedChange, autoplayPaused, onAutoplayToggle, reducedMotion,
     quoteDialogRef, searchDialogRef,
     quoteModel, onQuoteModelChange, enquiryNote, searchNote, onQuoteOpen, onSearchOpen
@@ -766,7 +814,7 @@ function ChatAssistant({ onQuoteOpen }) {
                   ) : (
                     <a
                       className="chat-action"
-                      href={message.action.href}
+                      href={resolveInternalHref(message.action.href, getCurrentPage())}
                       target={message.action.href.startsWith("http") ? "_blank" : undefined}
                       rel={message.action.href.startsWith("http") ? "noreferrer" : undefined}
                       onClick={() => setOpen(false)}
@@ -824,12 +872,18 @@ function ChatAssistant({ onQuoteOpen }) {
 }
 
 export default function App() {
+  const page = getCurrentPage();
   const pageRef = useRef(null);
   const quoteDialogRef = useRef(null);
   const searchDialogRef = useRef(null);
   const reducedMotion = useReducedMotion();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeFilter, setActiveFilter] = useState(() => {
+    const category = new URLSearchParams(window.location.search).get("category");
+    return ["pods", "homes", "containers", "bathroom", "storage", "accessories"].includes(category)
+      ? category
+      : "all";
+  });
   const [featuredIndex, setFeaturedIndex] = useState(2);
   const [autoplayPaused, setAutoplayPaused] = useState(false);
   const [quoteModel, setQuoteModel] = useState("");
@@ -842,6 +896,26 @@ export default function App() {
 
   useScrollEffects(reducedMotion, pageRef);
   useParticles(pageRef, reducedMotion);
+
+  useEffect(() => {
+    const pageTitles = {
+      home: "Micro Homes Direct | Tiny Homes, Pods & Container Homes Australia",
+      products: "Products | Micro Homes Direct",
+      about: "About | Micro Homes Direct",
+      contact: "Contact | Micro Homes Direct"
+    };
+    document.title = pageTitles[page];
+    const description = document.querySelector('meta[name="description"]');
+    if (description) {
+      description.content = {
+        home: "Innovative Tiny Homes for Modern Life & Work. Explore backyard pods, micro homes, container homes and flexible spaces from Micro Homes Direct, Australia.",
+        products: "Explore Micro Homes Direct pods, micro homes, container homes, bathroom pods and accessories.",
+        about: "Learn about Micro Homes Direct, our thoughtfully designed compact spaces, locations and flexible ways to live.",
+        contact: "Contact Micro Homes Direct to ask about products, delivery, locations or a quote."
+      }[page];
+    }
+    document.querySelector(`.nav-pill a[data-page="${page}"]`)?.setAttribute("aria-current", "page");
+  }, [page]);
 
   useEffect(() => {
     if (reducedMotion) setAutoplayPaused(true);
@@ -923,6 +997,7 @@ export default function App() {
     <div className="app-shell" ref={pageRef} onClick={handlePageClick} onPointerMove={handlePointerMove}>
       <a className="skip-link" href="#top">Skip to content</a>
       <SiteMarkup
+        page={page}
         menuOpen={menuOpen}
         onMenuToggle={setMenuOpen}
         onQuoteOpen={openQuote}

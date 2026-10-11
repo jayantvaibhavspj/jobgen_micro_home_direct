@@ -1088,6 +1088,31 @@ html,body,.app-shell { background:#f6f5f1;color:#24231f; }
 .product-filter[aria-pressed="true"] { border-color:#c84218;background:#c84218;color:#fff; }
 .product-count { margin-left:auto;color:rgba(36,35,31,.58);font-size:10px; }
 .model-card { animation:product-enter .38s both; }
+
+.header-actions { gap:8px; }
+.phone-link { display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 12px;border:1px solid rgba(200,66,24,.2);border-radius:999px;background:#fff7f3;color:#9d3416;font-size:12px;font-weight:700;letter-spacing:.01em;white-space:nowrap; }
+.phone-link svg { width:16px;height:16px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7; }
+.icon-button { width:38px;height:38px;border:1px solid rgba(36,35,31,.12);border-radius:50%;background:#fff;color:#292823; }
+.icon-button svg,.mobile-nav-tools svg { display:block;width:18px;height:18px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7; }
+.icon-button:hover { border-color:rgba(200,66,24,.35);background:#fff7f3;color:#9d3416; }
+.mobile-nav-tools span { display:inline-flex;align-items:center;justify-content:center; }
+.mobile-nav-tools svg { width:16px;height:16px;color:#9d3416; }
+
+@media(max-width:640px) {
+  .site-header { grid-template-columns:44px 1fr auto; }
+  .menu-toggle { width:40px; }
+  .menu-toggle::after { content:none; }
+  .header-actions { grid-column:3;gap:4px; }
+  .phone-link { min-height:36px;gap:6px;padding:0 9px;font-size:11px; }
+  .phone-link svg { width:14px;height:14px; }
+  .icon-button { width:34px;height:34px; }
+  .header-actions .button-small,.cart-button { display:none; }
+}
+
+@media(max-width:500px) {
+  .phone-link span { display:none; }
+  .phone-link { padding:0 8px; }
+}
 .model-photo { background-size:cover,100%;transition:background-size .45s cubic-bezier(.2,.7,.2,1),filter .35s; }
 .model-card:hover .model-photo { background-size:cover,108%;filter:saturate(1.08); }
 .model-photo-5 { background-image:linear-gradient(0deg,rgba(5,8,5,.4),transparent 60%),url("/assets/product-6m-main.webp"); }
@@ -1224,3 +1249,4 @@ html,body,.app-shell { background:#f6f5f1;color:#24231f; }
   .footer-panel .footer-links a,.footer-panel .footer-links p { font-size:14px;line-height:1.5; }
   .footer-panel .footer-bottom { gap:12px;font-size:10px;line-height:1.5; }
 }
+.nav-pill a[aria-current="page"] { color:#a93c1d;font-weight:700; }
