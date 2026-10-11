@@ -1,22 +1,46 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import parse, { attributesToProps, domToReact } from "html-react-parser";
-import pageMarkup from "./site-content.html?raw";
+import siteShellMarkup from "./site-shell.html?raw";
+import homeMarkup from "./pages/home.html?raw";
+import productsMarkup from "./pages/products.html?raw";
+import aboutMarkup from "./pages/about.html?raw";
+import financeMarkup from "./pages/finance.html?raw";
+import contactMarkup from "./pages/contact.html?raw";
 import "../styles.css";
 
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
 const pagePaths = {
-  home: "/index.html",
-  products: "/products.html",
-  about: "/about.html",
-  contact: "/contact.html"
+  home: "/",
+  products: "/products",
+  about: "/about",
+  finance: "/finance",
+  contact: "/contact"
+};
+const pageMarkups = {
+  home: homeMarkup,
+  products: productsMarkup,
+  about: aboutMarkup,
+  finance: financeMarkup,
+  contact: contactMarkup
 };
 
-function getCurrentPage() {
-  const path = window.location.pathname.toLowerCase();
-  if (path.endsWith("/products.html")) return "products";
-  if (path.endsWith("/about.html")) return "about";
-  if (path.endsWith("/contact.html")) return "contact";
+function getCurrentPage(pathname = window.location.pathname) {
+  const path = pathname.toLowerCase().replace(/\/+$/, "") || "/";
+  if (path === "/products" || path.endsWith("/products.html")) return "products";
+  if (path === "/about" || path.endsWith("/about.html")) return "about";
+  if (path === "/finance" || path.endsWith("/finance.html")) return "finance";
+  if (path === "/contact" || path.endsWith("/contact.html")) return "contact";
   return "home";
+}
+
+function resolveRouteHref(href, page) {
+  if (!href) return href;
+  if (href.startsWith("#")) return resolveInternalHref(href, page);
+  return href.replace(/^\/index\.html(?=[?#]|$)/i, "/")
+    .replace(/^\/products\.html(?=[?#]|$)/i, "/products")
+    .replace(/^\/about\.html(?=[?#]|$)/i, "/about")
+    .replace(/^\/contact\.html(?=[?#]|$)/i, "/contact");
 }
 
 function resolveInternalHref(href, page) {
@@ -26,30 +50,15 @@ function resolveInternalHref(href, page) {
     categories: "products",
     models: "products",
     why: "about",
-    finance: "about",
+    finance: "finance",
     locations: "contact",
     faq: "contact",
     contact: "contact"
   }[target];
   if (!targetPage) return href;
+  if (target === "finance" || target === "contact") return pagePaths[targetPage];
   if (targetPage === page) return href;
   return `${pagePaths[targetPage]}${href}`;
-}
-
-function shouldShowSection(node, page) {
-  const classes = (node.attribs?.class || "").split(/\s+/);
-  const id = node.attribs?.id;
-  const section = id || classes.find((name) => [
-    "hero", "transition-section", "categories", "why", "models",
-    "marquee-section", "uses", "locations", "partners", "faq", "contact"
-  ].includes(name));
-  const pageSections = {
-    home: ["hero", "transition-section", "categories", "why", "marquee-section", "uses"],
-    products: ["categories", "models", "faq"],
-    about: ["why", "marquee-section", "uses", "finance", "faq"],
-    contact: ["locations", "faq", "contact"]
-  };
-  return pageSections[page].includes(section);
 }
 
 const featuredModels = [
@@ -274,10 +283,14 @@ function SiteMarkup({
       if (!node.attribs) return undefined;
 
       const props = attributesToProps(node.attribs);
-      if (node.name === "section" && !shouldShowSection(node, page)) return <></>;
+      if (node.name === "div" && node.attribs.id === "route-page-content") {
+        return <>{parse(pageMarkups[page], options)}</>;
+      }
 
       if (node.name === "a" && node.attribs.href?.startsWith("#")) {
-        props.href = resolveInternalHref(node.attribs.href, page);
+        props.href = resolveRouteHref(node.attribs.href, page);
+      } else if (node.name === "a") {
+        props.href = resolveRouteHref(node.attribs.href, page);
       }
 
       if (node.name === "img" && node.attribs.id === "hero-feature-image") {
@@ -297,19 +310,42 @@ function SiteMarkup({
 
       if (node.name === "nav" && classes.split(/\s+/).includes("nav-pill")) {
         return (
-          <nav {...props} className={`nav-pill${menuOpen ? " open" : ""}`} onClick={(event) => {
-            if (event.target.closest("a")) onMenuToggle(false);
-          }}>
-            {children}
-          </nav>
+          <>
+            {menuOpen && (
+              <button
+                className="sidebar-backdrop"
+                type="button"
+                aria-label="Close navigation"
+                onClick={() => onMenuToggle(false)}
+              />
+            )}
+            <nav
+              {...props}
+              className={`nav-pill${menuOpen ? " open" : ""}`}
+              aria-hidden={!menuOpen && window.matchMedia("(max-width: 900px)").matches}
+              onClick={(event) => {
+                const clickedControl = event.target.closest(
+                  "a, .sidebar-close, .nav-search, .sidebar-quote-link"
+                );
+                if (clickedControl) {
+                  clickedControl.blur();
+                  if (window.matchMedia("(min-width: 901px)").matches) {
+                    document.body.classList.add("sidebar-clicked");
+                  }
+                  onMenuToggle(false);
+                }
+              }}
+            >
+              {children}
+            </nav>
+          </>
         );
       }
 
       if (node.name === "a" && node.attribs["data-filter-category"]) {
         props.href = `${pagePaths.products}?category=${encodeURIComponent(node.attribs["data-filter-category"])}#models`;
-        return (
-          <a {...props}>{children}</a>
-        );
+        const { href, ...linkProps } = props;
+        return <Link {...linkProps} to={href}>{children}</Link>;
       }
 
       if (node.name === "button" && classes.split(/\s+/).includes("product-filter")) {
@@ -356,7 +392,8 @@ function SiteMarkup({
       }
 
       if (node.name === "a" && node.attribs.id === "hero-explore-link") {
-        return <a {...props}>Explore the {featuredModels[featuredIndex].name}<span className="button-icon">↗</span></a>;
+        const { href, ...linkProps } = props;
+        return <Link {...linkProps} to={href}>Explore the {featuredModels[featuredIndex].name}<span className="button-icon">↗</span></Link>;
       }
 
       if (node.name === "span" && node.attribs.id === "hero-feature-category") {
@@ -434,6 +471,13 @@ function SiteMarkup({
             aria-label={menuOpen ? "Close navigation" : "Open navigation"}
             onClick={() => onMenuToggle(!menuOpen)}
           >
+            {children}
+          </button>
+        );
+      }
+      if (node.name === "button" && classes.split(/\s+/).includes("sidebar-close")) {
+        return (
+          <button {...props} onClick={() => onMenuToggle(false)}>
             {children}
           </button>
         );
@@ -552,6 +596,11 @@ function SiteMarkup({
         }}>{children}</form>;
       }
 
+      if (node.name === "a" && !/^(?:https?:|mailto:|tel:|javascript:)/i.test(props.href || "")) {
+        const { href, ...linkProps } = props;
+        return <Link {...linkProps} to={href}>{children}</Link>;
+      }
+
       return undefined;
     }
   }), [
@@ -561,7 +610,7 @@ function SiteMarkup({
     quoteModel, onQuoteModelChange, enquiryNote, searchNote, onQuoteOpen, onSearchOpen
   ]);
 
-  return parse(pageMarkup, options);
+  return parse(siteShellMarkup, options);
 }
 
 const assistantProducts = [
@@ -672,7 +721,7 @@ function getAssistantReply(question) {
   return { text: "I’m not certain about that detail, and I don’t want to guess. I can help with products, listed prices, finance, delivery, council questions, warranty, showroom locations and quotes. You can also call 1300 229 166." };
 }
 
-function ChatAssistant({ onQuoteOpen }) {
+function ChatAssistant({ onQuoteOpen, page }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState([
@@ -808,21 +857,27 @@ function ChatAssistant({ onQuoteOpen }) {
             {messages.map((message) => (
               <div className={`chat-message ${message.from}`} key={message.id}>
                 <p>{message.text}</p>
-                {message.action && (
-                  message.action.quote ? (
-                    <button className="chat-action" type="button" onClick={() => onQuoteOpen(null)}>{message.action.label} ↗</button>
-                  ) : (
-                    <a
-                      className="chat-action"
-                      href={resolveInternalHref(message.action.href, getCurrentPage())}
-                      target={message.action.href.startsWith("http") ? "_blank" : undefined}
-                      rel={message.action.href.startsWith("http") ? "noreferrer" : undefined}
-                      onClick={() => setOpen(false)}
-                    >
-                      {message.action.label} ↗
-                    </a>
-                  )
-                )}
+                {message.action?.quote ? (
+                  <button className="chat-action" type="button" onClick={() => onQuoteOpen(null)}>{message.action.label} ↗</button>
+                ) : message.action && (/^https?:/i.test(message.action.href) ? (
+                  <a
+                    className="chat-action"
+                    href={message.action.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => setOpen(false)}
+                  >
+                    {message.action.label} ↗
+                  </a>
+                ) : (
+                  <Link
+                    className="chat-action"
+                    to={resolveRouteHref(message.action.href, page)}
+                    onClick={() => setOpen(false)}
+                  >
+                    {message.action.label} ↗
+                  </Link>
+                ))}
               </div>
             ))}
           </div>
@@ -871,13 +926,15 @@ function ChatAssistant({ onQuoteOpen }) {
   );
 }
 
-export default function App() {
-  const page = getCurrentPage();
+function SiteApp({ page }) {
+  const location = useLocation();
   const pageRef = useRef(null);
+  const previousPathname = useRef(location.pathname);
   const quoteDialogRef = useRef(null);
   const searchDialogRef = useRef(null);
   const reducedMotion = useReducedMotion();
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuWasOpen = useRef(false);
   const [activeFilter, setActiveFilter] = useState(() => {
     const category = new URLSearchParams(window.location.search).get("category");
     return ["pods", "homes", "containers", "bathroom", "storage", "accessories"].includes(category)
@@ -898,10 +955,68 @@ export default function App() {
   useParticles(pageRef, reducedMotion);
 
   useEffect(() => {
+    const handlePointerMove = (event) => {
+      const expandedWidth = Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue("--sidebar-expanded-width")
+      );
+      if (event.clientX > expandedWidth) {
+        document.body.classList.remove("sidebar-clicked");
+      }
+    };
+    const handleResize = () => {
+      if (!window.matchMedia("(min-width: 901px)").matches) {
+        document.body.classList.remove("sidebar-clicked");
+      }
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    const category = new URLSearchParams(location.search).get("category");
+    setActiveFilter(
+      ["pods", "homes", "containers", "bathroom", "storage", "accessories"].includes(category)
+        ? category
+        : "all"
+    );
+  }, [location.search]);
+
+  useEffect(() => {
+    if (location.hash) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(decodeURIComponent(location.hash.slice(1)))
+          ?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" });
+      });
+    } else {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, [location.pathname, location.search, location.hash, reducedMotion]);
+
+  useEffect(() => {
+    if (previousPathname.current === location.pathname) return;
+    previousPathname.current = location.pathname;
+    if (reducedMotion) return;
+
+    const main = document.querySelector("main");
+    if (!main) return;
+
+    main.classList.remove("route-page-enter");
+    void main.offsetWidth;
+    main.classList.add("route-page-enter");
+    return () => main.classList.remove("route-page-enter");
+  }, [location.pathname, reducedMotion]);
+
+  useEffect(() => {
     const pageTitles = {
       home: "Micro Homes Direct | Tiny Homes, Pods & Container Homes Australia",
       products: "Products | Micro Homes Direct",
       about: "About | Micro Homes Direct",
+      finance: "Finance | Micro Homes Direct",
       contact: "Contact | Micro Homes Direct"
     };
     document.title = pageTitles[page];
@@ -911,11 +1026,38 @@ export default function App() {
         home: "Innovative Tiny Homes for Modern Life & Work. Explore backyard pods, micro homes, container homes and flexible spaces from Micro Homes Direct, Australia.",
         products: "Explore Micro Homes Direct pods, micro homes, container homes, bathroom pods and accessories.",
         about: "Learn about Micro Homes Direct, our thoughtfully designed compact spaces, locations and flexible ways to live.",
+        finance: "Explore finance information and options for your Micro Homes Direct purchase.",
         contact: "Contact Micro Homes Direct to ask about products, delivery, locations or a quote."
       }[page];
     }
+    document.querySelectorAll(".nav-pill a[aria-current]").forEach((link) => {
+      link.removeAttribute("aria-current");
+    });
     document.querySelector(`.nav-pill a[data-page="${page}"]`)?.setAttribute("aria-current", "page");
   }, [page]);
+
+  useEffect(() => {
+    if (menuOpen) {
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      document.querySelector(".sidebar-close")?.focus();
+      const handleKeyDown = (event) => {
+        if (event.key === "Escape") setMenuOpen(false);
+      };
+      document.addEventListener("keydown", handleKeyDown);
+      menuWasOpen.current = true;
+      return () => {
+        document.body.style.overflow = previousOverflow;
+        document.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+
+    if (menuWasOpen.current) {
+      document.querySelector(".menu-toggle")?.focus();
+      menuWasOpen.current = false;
+    }
+    return undefined;
+  }, [menuOpen]);
 
   useEffect(() => {
     if (reducedMotion) setAutoplayPaused(true);
@@ -1018,7 +1160,31 @@ export default function App() {
         enquiryNote={enquiryNote}
         searchNote={searchNote}
       />
-      <ChatAssistant onQuoteOpen={openQuote} />
+      <ChatAssistant onQuoteOpen={openQuote} page={page} />
     </div>
+  );
+}
+
+function LegacyPageRedirect() {
+  const { pathname, search, hash } = useLocation();
+  const page = getCurrentPage(pathname);
+  return <Navigate to={`${pagePaths[page]}${search}${hash}`} replace />;
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<SiteApp page="home" />} />
+      <Route path="/products" element={<SiteApp page="products" />} />
+      <Route path="/about" element={<SiteApp page="about" />} />
+      <Route path="/finance" element={<SiteApp page="finance" />} />
+      <Route path="/contact" element={<SiteApp page="contact" />} />
+      <Route path="/index.html" element={<Navigate to="/" replace />} />
+      <Route path="/products.html" element={<LegacyPageRedirect />} />
+      <Route path="/about.html" element={<LegacyPageRedirect />} />
+      <Route path="/finance.html" element={<LegacyPageRedirect />} />
+      <Route path="/contact.html" element={<LegacyPageRedirect />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
