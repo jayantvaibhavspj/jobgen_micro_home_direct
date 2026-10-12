@@ -7,6 +7,14 @@ import productsMarkup from "./pages/products.html?raw";
 import aboutMarkup from "./pages/about.html?raw";
 import financeMarkup from "./pages/finance.html?raw";
 import contactMarkup from "./pages/contact.html?raw";
+import blogMarkup from "./pages/blog.html?raw";
+import blogGuideMarkup from "./pages/blog-guide.html?raw";
+import containerHomeVideo from "../assets/Container_home_video_pan_1080p_20261012214955_gwr_video_mvp.mp4";
+import woodenCabinVideo from "../assets/Modern_wooden_modular_cabin_panning_20261012215000_gwr_video_mvp.mp4";
+import officePodVideo from "../assets/Modular_pod_office_in_courtyard_20261012215016_gwr_video_mvp.mp4";
+import capsulePodVideo from "../assets/Capsule_pod_house_exterior_panning_20261012215023_gwr_video_mvp.mp4";
+import gardenHomeVideo from "../assets/Prefabricated_tiny_house_in_garden_20261012215030.mp4";
+import heroVideoPoster from "../assets/hero-home.webp";
 import "../styles.css";
 
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
@@ -15,14 +23,18 @@ const pagePaths = {
   products: "/products",
   about: "/about",
   finance: "/finance",
-  contact: "/contact"
+  contact: "/contact",
+  blog: "/blog",
+  blogGuide: "/blog/cost-guide"
 };
 const pageMarkups = {
   home: homeMarkup,
   products: productsMarkup,
   about: aboutMarkup,
   finance: financeMarkup,
-  contact: contactMarkup
+  contact: contactMarkup,
+  blog: blogMarkup,
+  blogGuide: blogGuideMarkup
 };
 
 function getCurrentPage(pathname = window.location.pathname) {
@@ -31,6 +43,8 @@ function getCurrentPage(pathname = window.location.pathname) {
   if (path === "/about" || path.endsWith("/about.html")) return "about";
   if (path === "/finance" || path.endsWith("/finance.html")) return "finance";
   if (path === "/contact" || path.endsWith("/contact.html")) return "contact";
+  if (path === "/blog/cost-guide") return "blogGuide";
+  if (path === "/blog" || path.endsWith("/blog.html")) return "blog";
   return "home";
 }
 
@@ -40,7 +54,8 @@ function resolveRouteHref(href, page) {
   return href.replace(/^\/index\.html(?=[?#]|$)/i, "/")
     .replace(/^\/products\.html(?=[?#]|$)/i, "/products")
     .replace(/^\/about\.html(?=[?#]|$)/i, "/about")
-    .replace(/^\/contact\.html(?=[?#]|$)/i, "/contact");
+    .replace(/^\/contact\.html(?=[?#]|$)/i, "/contact")
+    .replace(/^\/blog\.html(?=[?#]|$)/i, "/blog");
 }
 
 function resolveInternalHref(href, page) {
@@ -96,6 +111,199 @@ const featuredModels = [
   }
 ];
 
+const heroVideos = [
+  { src: containerHomeVideo, label: "Container home" },
+  { src: woodenCabinVideo, label: "Modern wooden cabin" },
+  { src: officePodVideo, label: "Modular pod office" },
+  { src: capsulePodVideo, label: "Capsule pod home" },
+  { src: gardenHomeVideo, label: "Tiny home in a garden" }
+];
+
+function setHeroVideoPlaybackRate(video) {
+  if (video) video.playbackRate = 0.6;
+}
+
+function HeroVideoBackground({ videoIndex, onVideoEnded, paused, reducedMotion }) {
+  const videoRefs = useRef([]);
+  const activeLayerRef = useRef(-1);
+  const [activeLayer, setActiveLayer] = useState(-1);
+  const [fadingLayer, setFadingLayer] = useState(null);
+
+  useEffect(() => {
+    const currentLayer = activeLayerRef.current;
+    const nextLayer = currentLayer === 0 ? 1 : 0;
+    const nextVideo = videoRefs.current[nextLayer];
+    if (!nextVideo) return undefined;
+
+    let cancelled = false;
+    let loaded = false;
+    const activateNextVideo = () => {
+      if (loaded) return;
+      loaded = true;
+      nextVideo.removeEventListener("loadeddata", activateNextVideo);
+      if (cancelled) return;
+
+      nextVideo.playbackRate = 0.6;
+      setFadingLayer(currentLayer >= 0 ? currentLayer : null);
+      activeLayerRef.current = nextLayer;
+      setActiveLayer(nextLayer);
+    };
+
+    nextVideo.pause();
+    nextVideo.src = heroVideos[videoIndex].src;
+    nextVideo.addEventListener("error", handleLoadError, { once: true });
+    nextVideo.load();
+
+    if (nextVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      activateNextVideo();
+    } else {
+      nextVideo.addEventListener("loadeddata", activateNextVideo);
+    }
+
+    return () => {
+      cancelled = true;
+      nextVideo.removeEventListener("loadeddata", activateNextVideo);
+      nextVideo.removeEventListener("error", handleLoadError);
+    };
+
+    function handleLoadError() {
+      nextVideo.removeEventListener("loadeddata", activateNextVideo);
+      console.error(`Hero background video failed to load: ${heroVideos[videoIndex].src}`);
+    }
+  }, [videoIndex]);
+
+  useEffect(() => {
+    const activeVideo = videoRefs.current[activeLayer];
+    if (!activeVideo) return;
+    const inactiveVideo = videoRefs.current[activeLayer === 0 ? 1 : 0];
+    if (paused || reducedMotion) {
+      activeVideo.pause();
+      inactiveVideo?.pause();
+      return;
+    }
+
+    const playPromise = activeVideo.play();
+    if (playPromise) {
+      playPromise.catch((error) => {
+        if (error.name !== "AbortError") {
+          console.error("Hero background video failed to play.", error);
+        }
+      });
+    }
+  }, [activeLayer, paused, reducedMotion]);
+
+  const handleVideoEnded = (event) => {
+    if (event.currentTarget === videoRefs.current[activeLayerRef.current]) {
+      onVideoEnded();
+    }
+  };
+
+  const handleFadeComplete = (event, layer) => {
+    if (event.propertyName === "opacity" && layer === fadingLayer) {
+      event.currentTarget.pause();
+      setFadingLayer(null);
+    }
+  };
+
+  return (
+    <div className="hero-backdrop">
+      {[0, 1].map((layer) => (
+        <video
+          key={layer}
+          ref={(element) => { videoRefs.current[layer] = element; }}
+          className={`hero-backdrop-video${activeLayer === layer ? " is-active" : ""}${fadingLayer === layer ? " is-fading-out" : ""}`}
+          muted
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+          onEnded={handleVideoEnded}
+          onTransitionEnd={(event) => handleFadeComplete(event, layer)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function HeroVideoPreview({
+  videoIndex,
+  onSelect,
+  paused,
+  onTogglePaused,
+  reducedMotion
+}) {
+  const video = heroVideos[videoIndex];
+  return (
+    <div
+      className="hero-product hero-video-preview glass-card"
+    >
+      <span className="product-topline hero-video-preview-meta">
+        <span>UP NEXT</span>
+        <span className="live-dot">VIDEO {String(videoIndex + 1).padStart(2, "0")}</span>
+      </span>
+      <video
+        key={video.src}
+        className="hero-video-preview-media"
+        src={video.src}
+        poster={heroVideoPoster}
+        autoPlay={!reducedMotion && !paused}
+        muted
+        loop
+        playsInline
+        ref={setHeroVideoPlaybackRate}
+        preload="metadata"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+      <span className="hero-video-preview-footer">
+        <span className="hero-video-preview-label">{video.label}</span>
+        <span className="hero-video-preview-count">{String(videoIndex + 1).padStart(2, "0")} / {String(heroVideos.length).padStart(2, "0")}</span>
+      </span>
+      <div className="featured-controls hero-video-controls" role="group" aria-label="Hero video controls">
+        <button
+          className="featured-control"
+          type="button"
+          aria-label="Previous hero video"
+          onClick={() => onSelect((videoIndex - 1 + heroVideos.length) % heroVideos.length)}
+        >
+          ←
+        </button>
+        <div className="featured-dots">
+          {heroVideos.map((item, index) => (
+            <button
+              key={item.src}
+              className="featured-dot"
+              type="button"
+              aria-label={`Play ${item.label}`}
+              aria-pressed={videoIndex === index}
+              onClick={() => onSelect(index)}
+            />
+          ))}
+        </div>
+        <button
+          className="featured-autoplay"
+          type="button"
+          aria-label={paused ? "Resume hero video sequence" : "Pause hero video sequence"}
+          aria-pressed={!paused}
+          title={paused ? "Resume video sequence" : "Pause video sequence"}
+          disabled={reducedMotion}
+          onClick={onTogglePaused}
+        >
+          {paused || reducedMotion ? "▶" : "Ⅱ"}
+        </button>
+        <span className="featured-slide-count">{String(videoIndex + 1).padStart(2, "0")} / {String(heroVideos.length).padStart(2, "0")}</span>
+        <button
+          className="featured-control"
+          type="button"
+          aria-label="Next hero video"
+          onClick={() => onSelect((videoIndex + 1) % heroVideos.length)}
+        >
+          →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function useReducedMotion() {
   const [reducedMotion, setReducedMotion] = useState(
     () => window.matchMedia(reducedMotionQuery).matches
@@ -134,8 +342,134 @@ function useScrollEffects(reducedMotion, pageRef) {
       });
     }
 
+    const featureCarousel = page.querySelector("[data-feature-carousel]");
+    const featureSlides = Array.from(featureCarousel?.querySelectorAll("[data-feature-slide]") || []);
+    let carouselTimer;
+    let carouselObserver;
+    let carouselEventController;
+    let carouselVisible = !("IntersectionObserver" in window);
+    let carouselHovered = false;
+    let carouselFocused = false;
+    let carouselManuallyPaused = reducedMotion;
+    let activeFeatureIndex = 0;
+
+    if (featureCarousel && featureSlides.length) {
+      carouselEventController = new AbortController();
+      const listenerOptions = { signal: carouselEventController.signal };
+      const previousButton = featureCarousel.querySelector("[data-feature-prev]");
+      const nextButton = featureCarousel.querySelector("[data-feature-next]");
+      const toggleButton = featureCarousel.querySelector("[data-feature-toggle]");
+
+      function updateFeatureCarousel() {
+        const compactLayout = window.matchMedia("(max-width: 760px)").matches;
+        const narrowLayout = window.matchMedia("(max-width: 520px)").matches;
+        const visibleOffset = compactLayout ? 1 : 3;
+        const slideWidth = narrowLayout
+          ? 130
+          : compactLayout
+            ? Math.min(170, Math.max(122, window.innerWidth * 0.35))
+            : Math.min(178, Math.max(118, window.innerWidth * 0.12));
+        const slideGap = compactLayout
+          ? 8
+          : Math.min(26, Math.max(16, window.innerWidth * 0.018));
+        featureSlides.forEach((slide, index) => {
+          const relativeIndex = (index - activeFeatureIndex + featureSlides.length) % featureSlides.length;
+          const offset = relativeIndex > featureSlides.length / 2
+            ? relativeIndex - featureSlides.length
+            : relativeIndex;
+          const distance = Math.abs(offset);
+          slide.style.setProperty("--carousel-x", `${offset * (slideWidth + slideGap)}px`);
+          slide.style.setProperty("--carousel-angle", `${offset * -12}deg`);
+          slide.style.setProperty("--carousel-scale", distance === 0 ? "1.04" : distance === 1 ? "0.9" : "0.76");
+          slide.style.setProperty("--carousel-depth", String(featureSlides.length - distance));
+          slide.dataset.carouselPosition = distance === 0 ? "active" : distance <= visibleOffset ? "near" : "hidden";
+          slide.setAttribute("aria-hidden", String(distance > visibleOffset));
+          slide.setAttribute("aria-label", `${index + 1} of ${featureSlides.length}: ${slide.querySelector("h3")?.textContent.trim() || "Feature"}`);
+        });
+      }
+
+      function syncCarouselTimer() {
+        const shouldPlay = carouselVisible && !carouselHovered && !carouselFocused && !carouselManuallyPaused && !document.hidden;
+        if (shouldPlay && !carouselTimer) {
+          carouselTimer = window.setInterval(() => {
+            activeFeatureIndex = (activeFeatureIndex + 1) % featureSlides.length;
+            updateFeatureCarousel();
+          }, 3600);
+        } else if (!shouldPlay && carouselTimer) {
+          window.clearInterval(carouselTimer);
+          carouselTimer = undefined;
+        }
+        if (toggleButton) {
+          toggleButton.dataset.paused = String(carouselManuallyPaused);
+          toggleButton.setAttribute("aria-label", carouselManuallyPaused ? "Play feature gallery" : "Pause feature gallery");
+          toggleButton.setAttribute("aria-pressed", String(carouselManuallyPaused));
+        }
+      }
+
+      function showPreviousFeature() {
+        activeFeatureIndex = (activeFeatureIndex - 1 + featureSlides.length) % featureSlides.length;
+        updateFeatureCarousel();
+      }
+
+      function showNextFeature() {
+        activeFeatureIndex = (activeFeatureIndex + 1) % featureSlides.length;
+        updateFeatureCarousel();
+      }
+
+      function handleCarouselVisibility() {
+        carouselVisible = !document.hidden;
+        syncCarouselTimer();
+      }
+
+      function handleCarouselResize() {
+        updateFeatureCarousel();
+      }
+
+      const handleCarouselMouseEnter = () => {
+        carouselHovered = true;
+        syncCarouselTimer();
+      };
+      const handleCarouselMouseLeave = () => {
+        carouselHovered = false;
+        syncCarouselTimer();
+      };
+      const handleCarouselFocusIn = () => {
+        carouselFocused = true;
+        syncCarouselTimer();
+      };
+      const handleCarouselFocusOut = (event) => {
+        if (!featureCarousel.contains(event.relatedTarget)) {
+          carouselFocused = false;
+          syncCarouselTimer();
+        }
+      };
+      const handleToggleCarousel = () => {
+        carouselManuallyPaused = !carouselManuallyPaused;
+        syncCarouselTimer();
+      };
+
+      previousButton?.addEventListener("click", showPreviousFeature, listenerOptions);
+      nextButton?.addEventListener("click", showNextFeature, listenerOptions);
+      toggleButton?.addEventListener("click", handleToggleCarousel, listenerOptions);
+      featureCarousel.addEventListener("mouseenter", handleCarouselMouseEnter, listenerOptions);
+      featureCarousel.addEventListener("mouseleave", handleCarouselMouseLeave, listenerOptions);
+      featureCarousel.addEventListener("focusin", handleCarouselFocusIn, listenerOptions);
+      featureCarousel.addEventListener("focusout", handleCarouselFocusOut, listenerOptions);
+      document.addEventListener("visibilitychange", handleCarouselVisibility, listenerOptions);
+      window.addEventListener("resize", handleCarouselResize, listenerOptions);
+
+      if ("IntersectionObserver" in window) {
+        carouselObserver = new IntersectionObserver(([entry]) => {
+          carouselVisible = entry.isIntersecting;
+          syncCarouselTimer();
+        });
+        carouselObserver.observe(featureCarousel);
+      }
+      updateFeatureCarousel();
+      syncCarouselTimer();
+    }
+
     const parallaxElements = page.querySelectorAll("[data-parallax]");
-    const marquee = page.querySelector(".marquee-track");
     const transition = page.querySelector(".transition-section");
     let frameRequested = false;
 
@@ -158,16 +492,6 @@ function useScrollEffects(reducedMotion, pageRef) {
           transition.style.setProperty("--transition-progress", progress);
         }
 
-        if (marquee?.parentElement) {
-          const bounds = marquee.parentElement.getBoundingClientRect();
-          const progress = Math.min(1, Math.max(0,
-            (window.innerHeight - bounds.top) / (window.innerHeight + bounds.height)
-          ));
-          marquee.style.setProperty(
-            "--marquee-x",
-            `${-progress * Math.max(0, marquee.scrollWidth - window.innerWidth) * 0.52}px`
-          );
-        }
       }
       frameRequested = false;
     }
@@ -185,6 +509,9 @@ function useScrollEffects(reducedMotion, pageRef) {
 
     return () => {
       revealObserver?.disconnect();
+      carouselObserver?.disconnect();
+      carouselEventController?.abort();
+      if (carouselTimer) window.clearInterval(carouselTimer);
       window.removeEventListener("scroll", requestScrollUpdate);
       window.removeEventListener("resize", requestScrollUpdate);
     };
@@ -266,6 +593,10 @@ function SiteMarkup({
   onGallerySelect,
   activeFilter,
   onFilterChange,
+  heroVideoIndex,
+  onHeroVideoChange,
+  heroVideoPaused,
+  onHeroVideoTogglePaused,
   featuredIndex,
   onFeaturedChange,
   autoplayPaused,
@@ -308,6 +639,34 @@ function SiteMarkup({
       const children = domToReact(node.children || [], options);
       const classes = node.attribs.class || "";
 
+      if (page === "home" && node.name === "div" && classes.split(/\s+/).includes("hero-backdrop")) {
+        return (
+          <HeroVideoBackground
+            videoIndex={heroVideoIndex}
+            onVideoEnded={() => onHeroVideoChange((heroVideoIndex + 1) % heroVideos.length)}
+            paused={heroVideoPaused}
+            reducedMotion={reducedMotion}
+          />
+        );
+      }
+
+      if (page === "home" && node.name === "div" && classes.split(/\s+/).includes("hero-product")) {
+        const nextVideoIndex = (heroVideoIndex + 1) % heroVideos.length;
+        return (
+          <HeroVideoPreview
+            videoIndex={nextVideoIndex}
+            onSelect={onHeroVideoChange}
+            paused={heroVideoPaused}
+            onTogglePaused={onHeroVideoTogglePaused}
+            reducedMotion={reducedMotion}
+          />
+        );
+      }
+
+      if (page === "home" && node.name === "div" && classes.split(/\s+/).includes("widget-stat")) {
+        return <></>;
+      }
+
       if (node.name === "nav" && classes.split(/\s+/).includes("nav-pill")) {
         return (
           <>
@@ -344,6 +703,11 @@ function SiteMarkup({
 
       if (node.name === "a" && node.attribs["data-filter-category"]) {
         props.href = `${pagePaths.products}?category=${encodeURIComponent(node.attribs["data-filter-category"])}#models`;
+        const { href, ...linkProps } = props;
+        return <Link {...linkProps} to={href}>{children}</Link>;
+      }
+
+      if (node.name === "a" && props.href?.startsWith("/") && !props.href.startsWith("//")) {
         const { href, ...linkProps } = props;
         return <Link {...linkProps} to={href}>{children}</Link>;
       }
@@ -388,12 +752,12 @@ function SiteMarkup({
       }
 
       if (node.name === "p" && node.attribs.id === "hero-eyebrow") {
-        return <p {...props}>{`${featuredModels[featuredIndex].name.toUpperCase()} · FEATURED MODEL`}</p>;
+        return <p {...props}>FLEXIBLE SPACES · MADE FOR REAL LIFE</p>;
       }
 
       if (node.name === "a" && node.attribs.id === "hero-explore-link") {
         const { href, ...linkProps } = props;
-        return <Link {...linkProps} to={href}>Explore the {featuredModels[featuredIndex].name}<span className="button-icon">↗</span></Link>;
+        return <Link {...linkProps} to={href}>Explore our range<span className="button-icon">↗</span></Link>;
       }
 
       if (node.name === "span" && node.attribs.id === "hero-feature-category") {
@@ -605,6 +969,7 @@ function SiteMarkup({
     }
   }), [
     page, menuOpen, onMenuToggle, gallery, onGallerySelect, activeFilter, onFilterChange,
+    heroVideoIndex, onHeroVideoChange, heroVideoPaused, onHeroVideoTogglePaused,
     featuredIndex, onFeaturedChange, autoplayPaused, onAutoplayToggle, reducedMotion,
     quoteDialogRef, searchDialogRef,
     quoteModel, onQuoteModelChange, enquiryNote, searchNote, onQuoteOpen, onSearchOpen
@@ -941,6 +1306,8 @@ function SiteApp({ page }) {
       ? category
       : "all";
   });
+  const [heroVideoIndex, setHeroVideoIndex] = useState(0);
+  const [heroVideoPaused, setHeroVideoPaused] = useState(false);
   const [featuredIndex, setFeaturedIndex] = useState(2);
   const [autoplayPaused, setAutoplayPaused] = useState(false);
   const [quoteModel, setQuoteModel] = useState("");
@@ -1017,7 +1384,9 @@ function SiteApp({ page }) {
       products: "Products | Micro Homes Direct",
       about: "About | Micro Homes Direct",
       finance: "Finance | Micro Homes Direct",
-      contact: "Contact | Micro Homes Direct"
+      contact: "Contact | Micro Homes Direct",
+      blog: "Blog | Micro Homes Direct",
+      blogGuide: "Tiny Home Cost Guide | Micro Homes Direct"
     };
     document.title = pageTitles[page];
     const description = document.querySelector('meta[name="description"]');
@@ -1027,13 +1396,16 @@ function SiteApp({ page }) {
         products: "Explore Micro Homes Direct pods, micro homes, container homes, bathroom pods and accessories.",
         about: "Learn about Micro Homes Direct, our thoughtfully designed compact spaces, locations and flexible ways to live.",
         finance: "Explore finance information and options for your Micro Homes Direct purchase.",
-        contact: "Contact Micro Homes Direct to ask about products, delivery, locations or a quote."
+        contact: "Contact Micro Homes Direct to ask about products, delivery, locations or a quote.",
+        blog: "Read practical ideas and original guides about modular homes, backyard pods and flexible small-space living.",
+        blogGuide: "A practical Australian guide to planning the total cost of a tiny home, including delivery, site preparation and approvals."
       }[page];
     }
     document.querySelectorAll(".nav-pill a[aria-current]").forEach((link) => {
       link.removeAttribute("aria-current");
     });
-    document.querySelector(`.nav-pill a[data-page="${page}"]`)?.setAttribute("aria-current", "page");
+    const activeNavigationPage = page === "blogGuide" ? "blog" : page;
+    document.querySelector(`.nav-pill a[data-page="${activeNavigationPage}"]`)?.setAttribute("aria-current", "page");
   }, [page]);
 
   useEffect(() => {
@@ -1148,6 +1520,10 @@ function SiteApp({ page }) {
         onGallerySelect={setGallery}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
+        heroVideoIndex={heroVideoIndex}
+        onHeroVideoChange={setHeroVideoIndex}
+        heroVideoPaused={heroVideoPaused}
+        onHeroVideoTogglePaused={() => setHeroVideoPaused((paused) => !paused)}
         featuredIndex={featuredIndex}
         onFeaturedChange={setFeaturedIndex}
         autoplayPaused={autoplayPaused}
@@ -1179,11 +1555,14 @@ export default function App() {
       <Route path="/about" element={<SiteApp page="about" />} />
       <Route path="/finance" element={<SiteApp page="finance" />} />
       <Route path="/contact" element={<SiteApp page="contact" />} />
+      <Route path="/blog" element={<SiteApp page="blog" />} />
+      <Route path="/blog/cost-guide" element={<SiteApp page="blogGuide" />} />
       <Route path="/index.html" element={<Navigate to="/" replace />} />
       <Route path="/products.html" element={<LegacyPageRedirect />} />
       <Route path="/about.html" element={<LegacyPageRedirect />} />
       <Route path="/finance.html" element={<LegacyPageRedirect />} />
       <Route path="/contact.html" element={<LegacyPageRedirect />} />
+      <Route path="/blog.html" element={<LegacyPageRedirect />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
