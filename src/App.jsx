@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Children, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import parse, { attributesToProps, domToReact } from "html-react-parser";
 import siteShellMarkup from "./site-shell.html?raw";
 import homeMarkup from "./pages/home.html?raw";
-import productsMarkup from "./pages/products.html?raw";
+import shopMarkup from "./pages/shop.html?raw";
 import aboutMarkup from "./pages/about.html?raw";
 import financeMarkup from "./pages/finance.html?raw";
 import contactMarkup from "./pages/contact.html?raw";
 import blogMarkup from "./pages/blog.html?raw";
 import blogGuideMarkup from "./pages/blog-guide.html?raw";
+import modularHomeArticleMarkup from "./pages/blog-modular-home.html?raw";
+import expandableHomeArticleMarkup from "./pages/blog-expandable-home.html?raw";
+import productMarkup from "./pages/product.html?raw";
+import shopCatalog from "./data/shop-catalog.json";
 import containerHomeVideo from "../assets/Container_home_video_pan_1080p_20261012214955_gwr_video_mvp.mp4";
 import woodenCabinVideo from "../assets/Modern_wooden_modular_cabin_panning_20261012215000_gwr_video_mvp.mp4";
 import officePodVideo from "../assets/Modular_pod_office_in_courtyard_20261012215016_gwr_video_mvp.mp4";
@@ -19,30 +23,51 @@ import "../styles.css";
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
 const pagePaths = {
   home: "/",
-  products: "/products",
+  shop: "/shop",
   about: "/about",
   finance: "/finance",
   contact: "/contact",
   blog: "/blog",
-  blogGuide: "/blog/cost-guide"
+  blogGuide: "/blog/cost-guide",
+  blogModularHome: "/blog/what-is-a-modular-home",
+  blogExpandableHome: "/blog/expandable-homes",
+  productDetail: "/shop"
 };
+const shopCategoryByFeaturedFilter = {
+  pods: "pods",
+  homes: "high-ceiling",
+  containers: "container-homes",
+  bathroom: "toilets",
+  storage: "shipping-containers",
+  accessories: "trailers-accessories"
+};
+const featuredFilterByShopCategory = Object.fromEntries(
+  Object.entries(shopCategoryByFeaturedFilter).map(([filter, category]) => [category, filter])
+);
+const cartStorageKey = "micro-homes-direct-cart";
 const pageMarkups = {
   home: homeMarkup,
-  products: productsMarkup,
+  shop: shopMarkup,
   about: aboutMarkup,
   finance: financeMarkup,
   contact: contactMarkup,
   blog: blogMarkup,
-  blogGuide: blogGuideMarkup
+  blogGuide: blogGuideMarkup,
+  blogModularHome: modularHomeArticleMarkup,
+  blogExpandableHome: expandableHomeArticleMarkup,
+  productDetail: productMarkup
 };
 
 function getCurrentPage(pathname = window.location.pathname) {
   const path = pathname.toLowerCase().replace(/\/+$/, "") || "/";
-  if (path === "/products" || path.endsWith("/products.html")) return "products";
+  if (path === "/shop" || path.endsWith("/shop.html")) return "shop";
   if (path === "/about" || path.endsWith("/about.html")) return "about";
   if (path === "/finance" || path.endsWith("/finance.html")) return "finance";
+  if (path.startsWith("/product/")) return "productDetail";
   if (path === "/contact" || path.endsWith("/contact.html")) return "contact";
   if (path === "/blog/cost-guide") return "blogGuide";
+  if (path === "/blog/what-is-a-modular-home") return "blogModularHome";
+  if (path === "/blog/expandable-homes") return "blogExpandableHome";
   if (path === "/blog" || path.endsWith("/blog.html")) return "blog";
   return "home";
 }
@@ -51,6 +76,7 @@ function resolveRouteHref(href, page) {
   if (!href) return href;
   if (href.startsWith("#")) return resolveInternalHref(href, page);
   return href.replace(/^\/index\.html(?=[?#]|$)/i, "/")
+    .replace(/^\/shop\.html(?=[?#]|$)/i, "/shop")
     .replace(/^\/products\.html(?=[?#]|$)/i, "/products")
     .replace(/^\/about\.html(?=[?#]|$)/i, "/about")
     .replace(/^\/contact\.html(?=[?#]|$)/i, "/contact")
@@ -61,8 +87,8 @@ function resolveInternalHref(href, page) {
   if (!href?.startsWith("#")) return href;
   const target = href.slice(1);
   const targetPage = {
-    categories: "products",
-    models: "products",
+    categories: "shop",
+    models: "shop",
     why: "about",
     finance: "finance",
     locations: "contact",
@@ -120,6 +146,26 @@ const heroVideos = [
 
 function setHeroVideoPlaybackRate(video) {
   if (video) video.playbackRate = 0.6;
+}
+
+const searchBackgroundImages = shopCatalog.products
+  .filter((product) => product.image)
+  .filter((product) => !/^(?:3m-micro-pod|4m-micro-pod|4m-13ft-backyard-office|6m-micro-pod|6m20ft-backyard-office)(?:-|$)/i.test(product.slug))
+  .map((product) => product.image);
+
+function SearchBackdrop({ index, previousIndex, className = "search-backdrop" }) {
+  return (
+    <div className={className} aria-hidden="true">
+      {[...new Set([previousIndex, index].filter((imageIndex) => imageIndex !== null))].map((imageIndex) => (
+        <img
+          key={imageIndex}
+          className={imageIndex === index ? "is-visible" : "is-leaving"}
+          src={searchBackgroundImages[imageIndex]}
+          alt=""
+        />
+      ))}
+    </div>
+  );
 }
 
 function HeroVideoBackground({ videoIndex, onVideoEnded, paused, reducedMotion }) {
@@ -660,12 +706,422 @@ function useParticles(pageRef, reducedMotion, pageKey) {
   }, [pageRef, reducedMotion, pageKey]);
 }
 
+function FinanceCalculatorFrame() {
+  return (
+    <iframe
+      src="https://main.d3no9537k411us.amplifyapp.com/"
+      title="Micro Homes Direct finance repayment calculator"
+      loading="lazy"
+      referrerPolicy="strict-origin-when-cross-origin"
+    />
+  );
+}
+
+function loadCartItems() {
+  try {
+    const storedItems = JSON.parse(window.localStorage.getItem(cartStorageKey) || "[]");
+    if (!Array.isArray(storedItems)) return [];
+    return storedItems.filter((item) => (
+      shopCatalog.products.some((product) => product.slug === item.slug)
+      && Number.isInteger(item.quantity)
+      && item.quantity > 0
+    ));
+  } catch (error) {
+    console.error("Unable to load the saved cart.", error);
+    return [];
+  }
+}
+
+function ProductDetail({ product, onAddToCart }) {
+  const [activeImage, setActiveImage] = useState(0);
+  const category = shopCatalog.categories.find(({ slug }) => slug === product.category);
+  const gallery = product.gallery?.length
+    ? product.gallery
+    : [product.image || category?.image].filter(Boolean);
+  const relatedProducts = shopCatalog.products
+    .filter((item) => item.category === product.category && item.slug !== product.slug)
+    .slice(0, 4);
+
+  return (
+    <div className="product-detail-page">
+      <nav className="product-breadcrumb" aria-label="Breadcrumb">
+        <Link to="/">Home</Link><span aria-hidden="true">/</span>
+        <Link to="/shop">Shop</Link><span aria-hidden="true">/</span>
+        <Link to={`/shop?category=${encodeURIComponent(product.category)}`}>{category?.label || "Products"}</Link>
+        <span aria-hidden="true">/</span><span aria-current="page">{product.name}</span>
+      </nav>
+
+      <section className="product-detail-hero">
+        <div className="product-detail-gallery">
+          <div className="product-detail-main-image">
+            {gallery[activeImage] && <img src={gallery[activeImage]} alt={product.name} fetchPriority="high" />}
+          </div>
+          {gallery.length > 1 && (
+            <div className="product-detail-thumbnails" aria-label="Product images">
+              {gallery.map((image, index) => (
+                <button
+                  className={activeImage === index ? "is-active" : ""}
+                  key={`${image}-${index}`}
+                  type="button"
+                  aria-label={`Show product image ${index + 1}`}
+                  aria-pressed={activeImage === index}
+                  onClick={() => setActiveImage(index)}
+                >
+                  <img src={image} alt="" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="product-detail-summary">
+          <p className="eyebrow"><Link to={`/shop?category=${encodeURIComponent(product.category)}`}>{category?.label || "Micro Homes Direct"}</Link></p>
+          <h1>{product.name}</h1>
+          <p className="product-detail-price">{product.price}<span>AUD · Listed price</span></p>
+          <p className="product-detail-description">{product.description || "Contact our team for product specifications, current availability and delivery information."}</p>
+          <div className="product-detail-actions">
+            <button className="cart-add-button cart-add-button--detail" type="button" onClick={() => onAddToCart(product.slug)}>
+              Add to cart
+            </button>
+            <button className="button quote-open" type="button" data-interest={product.name}>
+              Enquire about this product <span className="button-icon">↗</span>
+            </button>
+            <a className="product-detail-phone" href="tel:1300229166">Call 1300 229 166</a>
+          </div>
+          <p className="product-detail-disclaimer">Prices and availability may change. Confirm final details with our team before ordering.</p>
+        </div>
+      </section>
+
+      {product.detailsLoadError && (
+        <p className="product-detail-load-error" role="alert">
+          Product information could not be loaded. The current listed product details are shown above. Please contact our team if you need more information.
+        </p>
+      )}
+
+      {product.details?.length > 0 && (
+        <section className="product-detail-information" aria-label={`${product.name} details`}>
+          <p className="eyebrow">PRODUCT INFORMATION</p>
+          <h2>Made for <em>the way you live.</em></h2>
+          <div className="product-detail-sections">
+            {product.details.map((section, index) => (
+              <article className="product-detail-section" key={`${section.heading}-${index}`}>
+                <h3>{section.heading}</h3>
+                {section.paragraphs.map((paragraph, paragraphIndex) => (
+                  <p key={paragraphIndex}>{paragraph}</p>
+                ))}
+                {section.items.length > 0 && (
+                  <ul>
+                    {section.items.map((item, itemIndex) => <li key={itemIndex}>{item}</li>)}
+                  </ul>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {relatedProducts.length > 0 && (
+        <section className="product-related-products" aria-label="Related products">
+          <div className="product-related-heading">
+            <div><p className="eyebrow">EXPLORE THE COLLECTION</p><h2>More in <em>{category?.label || "this range"}.</em></h2></div>
+            <Link to={`/shop?category=${encodeURIComponent(product.category)}`}>View category ↗</Link>
+          </div>
+          <div className="shop-product-grid">
+            {relatedProducts.map((item) => (
+              <article className="shop-product-card" key={item.slug}>
+                <Link className="shop-product-image" to={item.localUrl} aria-label={`View ${item.name}`}>
+                  <img src={item.image || category?.image} alt={item.name} loading="lazy" />
+                  <span className="shop-product-link" aria-hidden="true">↗</span>
+                </Link>
+                <div className="shop-product-info">
+                  <p className="shop-product-category">{category?.label}</p>
+                  <h3><Link to={item.localUrl}>{item.name}</Link></h3>
+                  <div className="shop-product-price"><strong>{item.price}</strong><span>AUD</span></div>
+                  <button className="cart-add-button" type="button" onClick={() => onAddToCart(item.slug)}>
+                    Add to cart
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function ProductDetailRoute({
+  onAddToCart,
+  cartItems,
+  cartOpen,
+  onCartOpen,
+  onCartClose,
+  onCartQuantityChange,
+  onCartRemove
+}) {
+  const { slug } = useParams();
+  const product = shopCatalog.products.find((item) => item.slug === slug);
+  const [details, setDetails] = useState(null);
+  const [detailsLoadError, setDetailsLoadError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setDetails(null);
+    setDetailsLoadError(false);
+
+    import("./data/product-details.json")
+      .then(({ default: productDetails }) => {
+        if (active) setDetails(productDetails[slug] || { description: "", details: [] });
+      })
+      .catch(() => {
+        if (active) setDetailsLoadError(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  if (!product) return <Navigate to="/shop" replace />;
+  if (!details && !detailsLoadError) {
+    return (
+      <SiteApp
+        page="productDetail"
+        onAddToCart={onAddToCart}
+        cartItems={cartItems}
+        cartOpen={cartOpen}
+        onCartOpen={onCartOpen}
+        onCartClose={onCartClose}
+        onCartQuantityChange={onCartQuantityChange}
+        onCartRemove={onCartRemove}
+        product={{ ...product, description: "Loading product information…", details: [] }}
+      />
+    );
+  }
+  return (
+    <SiteApp
+      page="productDetail"
+      onAddToCart={onAddToCart}
+      cartItems={cartItems}
+      cartOpen={cartOpen}
+      onCartOpen={onCartOpen}
+      onCartClose={onCartClose}
+      onCartQuantityChange={onCartQuantityChange}
+      onCartRemove={onCartRemove}
+      product={{
+        ...product,
+        ...(details || { description: "", details: [] }),
+        detailsLoadError
+      }}
+    />
+  );
+}
+
+function ShopCatalog({ onAddToCart }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryCategory = searchParams.get("category");
+  const [activeCategory, setActiveCategory] = useState(() => (
+    shopCatalog.categories.some(({ slug }) => slug === queryCategory) ? queryCategory : "all"
+  ));
+  const visibleProducts = activeCategory === "all"
+    ? shopCatalog.products
+    : shopCatalog.products.filter((product) => product.category === activeCategory);
+  const activeCategoryInfo = shopCatalog.categories.find(({ slug }) => slug === activeCategory);
+
+  useEffect(() => {
+    setActiveCategory(
+      shopCatalog.categories.some(({ slug }) => slug === queryCategory) ? queryCategory : "all"
+    );
+  }, [queryCategory]);
+
+  function selectCategory(category) {
+    setActiveCategory(category);
+    const nextParams = new URLSearchParams(searchParams);
+    if (category === "all") nextParams.delete("category");
+    else nextParams.set("category", category);
+    setSearchParams(nextParams, { replace: true, preventScrollReset: true });
+  }
+
+  return (
+    <section className="shop-catalog section-pad" id="models" aria-label="Shop products and categories">
+      <div className="shop-category-picker" id="shop-product-catalog">
+        <div className="shop-category-heading">
+          <p className="eyebrow">FIND YOUR FIT</p>
+          <h2>Space that fits <em>your next chapter.</em></h2>
+          <p>From focused workspaces to flexible living and storage, explore the range and ask us about the details that matter to your plans.</p>
+        </div>
+        <p className="eyebrow">SHOP BY CATEGORY</p>
+        <div className="shop-category-grid" role="group" aria-label="Product categories">
+          {shopCatalog.categories.map((category) => (
+            <button
+              className={`shop-category-card${activeCategory === category.slug ? " is-active" : ""}`}
+              key={category.slug}
+              type="button"
+              aria-pressed={activeCategory === category.slug}
+              onClick={() => selectCategory(category.slug)}
+            >
+              <span className="shop-category-image">
+                <img src={category.image} alt="" loading="lazy" />
+              </span>
+              <span className="shop-category-details">
+                <span>{category.label}</span>
+                <small>{category.count} products</small>
+              </span>
+              <span className="shop-category-arrow" aria-hidden="true">↗</span>
+            </button>
+          ))}
+        </div>
+        <button
+          className={`shop-all-button${activeCategory === "all" ? " is-active" : ""}`}
+          type="button"
+          aria-pressed={activeCategory === "all"}
+          onClick={() => selectCategory("all")}
+        >
+          View all {shopCatalog.products.length} products <span aria-hidden="true">↗</span>
+        </button>
+      </div>
+
+      <div className="shop-products" id="shop-products">
+        <div className="shop-products-heading">
+          <div>
+            <p className="eyebrow">{activeCategoryInfo ? activeCategoryInfo.label : "THE FULL COLLECTION"}</p>
+            <h2>{activeCategoryInfo ? activeCategoryInfo.label : "All products"}</h2>
+          </div>
+          <p className="shop-results-count" aria-live="polite">
+            {visibleProducts.length} {visibleProducts.length === 1 ? "product" : "products"}
+          </p>
+        </div>
+        {activeCategoryInfo && (
+          <p className="shop-category-intro">{activeCategoryInfo.intro}</p>
+        )}
+        <div className="shop-product-grid">
+          {visibleProducts.map((product) => (
+            <article className="shop-product-card" key={`${product.category}-${product.name}`}>
+              <Link
+                className="shop-product-image"
+                to={product.localUrl}
+                aria-label={`View ${product.name}`}
+              >
+                <img src={product.image || shopCatalog.categories.find(({ slug }) => slug === product.category)?.image} alt={product.name} loading="lazy" />
+                <span className="shop-product-link" aria-hidden="true">↗</span>
+              </Link>
+              <div className="shop-product-info">
+                <p className="shop-product-category">
+                  {shopCatalog.categories.find(({ slug }) => slug === product.category)?.label}
+                </p>
+                <h3><Link to={product.localUrl}>{product.name}</Link></h3>
+                <div className="shop-product-price">
+                  <strong>{product.price}</strong>
+                  <span>AUD</span>
+                </div>
+                <button className="cart-add-button" type="button" onClick={() => onAddToCart(product.slug)}>
+                  Add to cart
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p className="shop-price-note">
+          Prices and availability are shown as listed on Micro Homes Direct and may change. Confirm details with the team before ordering.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function CartDrawer({ items, onClose, onQuantityChange, onRemove }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [onClose]);
+
+  const cartProducts = items
+    .map(({ slug, quantity }) => ({
+      product: shopCatalog.products.find((item) => item.slug === slug),
+      quantity
+    }))
+    .filter(({ product }) => product);
+  const itemCount = cartProducts.reduce((total, item) => total + item.quantity, 0);
+  const subtotal = cartProducts.reduce((total, { product, quantity }) => {
+    const price = Number.parseFloat(product.price.replace(/[^0-9.]/g, ""));
+    return total + (Number.isFinite(price) ? price * quantity : 0);
+  }, 0);
+
+  return (
+    <div className="cart-overlay" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
+      <aside className="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+        <div className="cart-drawer-heading">
+          <div>
+            <p className="eyebrow">YOUR SELECTION</p>
+            <h2 id="cart-title">Shopping cart <span>({itemCount})</span></h2>
+          </div>
+          <button className="cart-close" type="button" aria-label="Close cart" onClick={onClose}>×</button>
+        </div>
+        {cartProducts.length === 0 ? (
+          <div className="cart-empty">
+            <p>Your cart is empty.</p>
+            <button className="cart-continue-button" type="button" onClick={onClose}>Continue shopping</button>
+          </div>
+        ) : (
+          <>
+            <div className="cart-items">
+              {cartProducts.map(({ product, quantity }) => (
+                <article className="cart-item" key={product.slug}>
+                  <Link className="cart-item-image" to={product.localUrl} onClick={onClose}>
+                    <img src={product.image || shopCatalog.categories.find(({ slug }) => slug === product.category)?.image} alt="" />
+                  </Link>
+                  <div className="cart-item-details">
+                    <Link to={product.localUrl} onClick={onClose}>{product.name}</Link>
+                    <strong>{product.price} AUD</strong>
+                    <div className="cart-item-controls">
+                      <div className="cart-quantity" aria-label={`Quantity for ${product.name}`}>
+                        <button type="button" aria-label={`Decrease quantity of ${product.name}`} onClick={() => onQuantityChange(product.slug, quantity - 1)}>−</button>
+                        <span>{quantity}</span>
+                        <button type="button" aria-label={`Increase quantity of ${product.name}`} onClick={() => onQuantityChange(product.slug, quantity + 1)}>+</button>
+                      </div>
+                      <button className="cart-remove" type="button" onClick={() => onRemove(product.slug)}>Remove</button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="cart-drawer-footer">
+              <div className="cart-subtotal"><span>Listed subtotal</span><strong>${subtotal.toLocaleString("en-AU", { maximumFractionDigits: 2 })} AUD</strong></div>
+              <p>Delivery and final pricing are confirmed with our team before ordering.</p>
+              <Link className="button cart-contact-button" to="/contact" onClick={onClose}>Contact us about your cart <span className="button-icon">↗</span></Link>
+              <button className="cart-continue-button" type="button" onClick={onClose}>Continue shopping</button>
+            </div>
+          </>
+        )}
+      </aside>
+    </div>
+  );
+}
+
 function SiteMarkup({
   page,
+  product,
+  onAddToCart,
+  onCartOpen,
+  cartCount,
   menuOpen,
   onMenuToggle,
   onQuoteOpen,
   onSearchOpen,
+  onSearchNavigate,
+  searchOpen,
+  searchBackgroundIndex,
+  previousSearchBackgroundIndex,
   gallery,
   onGallerySelect,
   activeFilter,
@@ -693,6 +1149,35 @@ function SiteMarkup({
       const props = attributesToProps(node.attribs);
       if (node.name === "div" && node.attribs.id === "route-page-content") {
         return <>{parse(pageMarkups[page], options)}</>;
+      }
+      if (node.name === "div" && node.attribs.id === "search-background") {
+        return <SearchBackdrop index={searchBackgroundIndex} previousIndex={previousSearchBackgroundIndex} />;
+      }
+      if (node.name === "div" && node.attribs.id === "faq-background") {
+        return <SearchBackdrop index={searchBackgroundIndex} previousIndex={previousSearchBackgroundIndex} className="search-backdrop faq-backdrop" />;
+      }
+      if (node.name === "div" && node.attribs.id === "shop-product-catalog") {
+        return <ShopCatalog onAddToCart={onAddToCart} />;
+      }
+      if (node.name === "div" && node.attribs.id === "finance-calculator-embed") {
+        return <FinanceCalculatorFrame />;
+      }
+      if (node.name === "div" && node.attribs.id === "product-detail-mount") {
+        return <ProductDetail product={product} onAddToCart={onAddToCart} />;
+      }
+
+      if (["a", "button"].includes(node.name) && (node.attribs.class || "").split(/\s+/).includes("cart-button")) {
+        return (
+          <button
+            className={node.attribs.class}
+            type="button"
+            aria-label={`Open cart, ${cartCount} ${cartCount === 1 ? "item" : "items"}`}
+            onClick={onCartOpen}
+          >
+            {domToReact(node.children || [], options)}
+            {cartCount > 0 && <span className="cart-count-badge" aria-hidden="true">{cartCount}</span>}
+          </button>
+        );
       }
 
       if (node.name === "a" && node.attribs.href?.startsWith("#")) {
@@ -779,7 +1264,8 @@ function SiteMarkup({
       }
 
       if (node.name === "a" && node.attribs["data-filter-category"]) {
-        props.href = `${pagePaths.products}?category=${encodeURIComponent(node.attribs["data-filter-category"])}#models`;
+        const category = shopCategoryByFeaturedFilter[node.attribs["data-filter-category"]];
+        props.href = `${pagePaths.shop}?category=${encodeURIComponent(category)}#shop-product-catalog`;
         const { href, ...linkProps } = props;
         return <Link {...linkProps} to={href}>{children}</Link>;
       }
@@ -953,8 +1439,12 @@ function SiteMarkup({
       }
 
       if (node.name === "select" && node.attribs.id === "quote-model") {
+        const hasQuoteModelOption = Children.toArray(children).some((option) => (
+          String(option.props.value ?? option.props.children) === quoteModel
+        ));
         return (
           <select {...props} value={quoteModel} onChange={(event) => onQuoteModelChange(event.target.value)}>
+            {quoteModel && !hasQuoteModelOption && <option value={quoteModel}>{quoteModel}</option>}
             {children}
           </select>
         );
@@ -972,6 +1462,24 @@ function SiteMarkup({
         return <p {...props}>{searchNote || children}</p>;
       }
 
+      if (node.name === "select" && node.attribs.id === "site-search") {
+        return (
+          <select {...props} defaultValue="">
+            <option value="">Choose a category or product</option>
+            {shopCatalog.categories.map((category) => (
+              <optgroup label={category.label} key={category.slug}>
+                <option value={`category:${category.slug}`}>All {category.label}</option>
+                {shopCatalog.products
+                  .filter((item) => item.category === category.slug)
+                  .map((item) => (
+                    <option value={`product:${item.localUrl}`} key={item.slug}>{item.name}</option>
+                  ))}
+              </optgroup>
+            ))}
+          </select>
+        );
+      }
+
       if (node.name === "button" && classes.split(/\s+/).includes("carousel-control")) {
         return (
           <button {...props} onClick={() => {
@@ -987,7 +1495,11 @@ function SiteMarkup({
       }
 
       if (node.name === "button" && classes.split(/\s+/).includes("modal-close")) {
-        return <button {...props} onClick={(event) => event.currentTarget.closest("dialog")?.close()}>{children}</button>;
+        return <button {...props} onClick={(event) => {
+          const dialog = event.currentTarget.closest("dialog");
+          dialog?.close();
+          if (dialog?.id === "search-dialog") onSearchOpen(false);
+        }}>{children}</button>;
       }
 
       if (node.name === "form" && node.attribs.id === "quote-form") {
@@ -1017,24 +1529,18 @@ function SiteMarkup({
       if (node.name === "form" && node.attribs.id === "search-form") {
         return <form {...props} onSubmit={(event) => {
           event.preventDefault();
-          const query = new FormData(event.currentTarget).get("q").trim().toLowerCase();
-          onFilterChange("all");
-          window.setTimeout(() => {
-            const matches = [...document.querySelectorAll(".category-card, .model-card")];
-            const target = matches.find((card) => card.textContent.toLowerCase().includes(query));
-            if (target) {
-              searchDialogRef.current?.close();
-              target.scrollIntoView({
-                behavior: window.matchMedia(reducedMotionQuery).matches ? "auto" : "smooth",
-                block: "center"
-              });
-              target.classList.add("search-highlight");
-              window.setTimeout(() => target.classList.remove("search-highlight"), 1800);
-            } else {
-              onSearchOpen(true, "No featured match. Try “pod”, “home”, “container” or contact our team.");
-            }
-          }, 0);
+          const selection = new FormData(event.currentTarget).get("q");
+          if (typeof selection !== "string") return;
+          if (selection.startsWith("category:")) {
+            onSearchNavigate(`/shop?category=${encodeURIComponent(selection.slice("category:".length))}`);
+          } else if (selection.startsWith("product:")) {
+            onSearchNavigate(selection.slice("product:".length));
+          }
         }}>{children}</form>;
+      }
+
+      if (node.name === "dialog" && node.attribs.id === "search-dialog") {
+        return <dialog {...props} onClose={() => onSearchOpen(false)}>{children}</dialog>;
       }
 
       if (node.name === "a" && !/^(?:https?:|mailto:|tel:|javascript:)/i.test(props.href || "")) {
@@ -1045,11 +1551,13 @@ function SiteMarkup({
       return undefined;
     }
   }), [
-    page, menuOpen, onMenuToggle, gallery, onGallerySelect, activeFilter, onFilterChange,
+    page, product, onAddToCart, onCartOpen, cartCount,
+    menuOpen, onMenuToggle, gallery, onGallerySelect, activeFilter, onFilterChange,
     heroVideoIndex, onHeroVideoChange, heroVideoPaused, onHeroVideoTogglePaused,
     featuredIndex, onFeaturedChange, autoplayPaused, onAutoplayToggle, reducedMotion,
     quoteDialogRef, searchDialogRef,
-    quoteModel, onQuoteModelChange, enquiryNote, searchNote, onQuoteOpen, onSearchOpen
+    quoteModel, onQuoteModelChange, enquiryNote, searchNote, onQuoteOpen, onSearchOpen, onSearchNavigate,
+    searchOpen, searchBackgroundIndex, previousSearchBackgroundIndex
   ]);
 
   return parse(siteShellMarkup, options);
@@ -1115,7 +1623,7 @@ function getAssistantReply(question) {
       text: hindi
         ? `${product.name} हमारी ${product.category} range में दिखाया गया है।${pricing} Price और availability team से confirm करें।`
         : `${product.name} is shown in our ${product.category} range.${pricing} Prices and availability can change; confirm the latest details with our team.`,
-      action: { label: "View product range", href: "#models" }
+      action: { label: "View product range", href: "/shop#models" }
     };
   }
   if (has("price", "cost", "kitna", "कीमत", "दाम", "rate")) {
@@ -1125,13 +1633,13 @@ function getAssistantReply(question) {
     return { text: hindi
       ? `Website पर listed prices: ${prices} ये indicative prices हैं—latest जानकारी team से confirm करें।`
       : `The website lists these prices: ${prices} They’re indicative and should be confirmed with the team.`,
-    action: { label: "Browse products", href: "#models" } };
+    action: { label: "Browse products", href: "/shop#models" } };
   }
   if (has("compare", "comparison", "difference", "versus", " vs ", "better", "best", "kaunsa", "कौन सा")) {
-    return { text: "The best choice depends on how you’ll use the space, the size you need and your site. The catalogue shows product descriptions and listed prices; tell me which two models you’re comparing and I can share the listed details. For exact specifications, ask our team.", action: { label: "Compare in catalogue", href: "#models" } };
+    return { text: "The best choice depends on how you’ll use the space, the size you need and your site. The catalogue shows product descriptions and listed prices; tell me which two models you’re comparing and I can share the listed details. For exact specifications, ask our team.", action: { label: "Compare in catalogue", href: "/shop#models" } };
   }
   if (has("finance", "loan", "emi", "installment", "instalment", "फाइनेंस", "किस्त")) {
-    return { text: "Finance options may be available, subject to the provider’s terms, eligibility, assessment and approval. Visit our finance page for indicative information; the finance provider can confirm your options.", action: { label: "Finance information", href: "https://www.microhomesdirect.au/finance/" } };
+    return { text: "Finance options may be available, subject to the provider’s terms, eligibility, assessment and approval. Visit our finance page for indicative information; the finance provider can confirm your options.", action: { label: "Finance information", href: "/finance" } };
   }
   if (has("council", "approval", "permit", "planning", "council approval", "अनुमति")) {
     return { text: "Council and planning requirements depend on your local authority, site and intended use. Please check with your local council and qualified professionals before purchasing. Our team can share product information for your plans." };
@@ -1291,8 +1799,11 @@ function ChatAssistant({ onQuoteOpen, page }) {
             onPointerUp={stopDrag}
             onPointerCancel={stopDrag}
           >
-            <img src="/assets/brand-logo.webp" alt="" className="chat-logo" />
-            <span className="chat-heading"><strong>MHD Assistant</strong><small>Here to help · Drag to move</small></span>
+            <span className="chat-avatar" aria-hidden="true"><img src="/assets/brand-logo.webp" alt="" /></span>
+            <span className="chat-heading">
+              <strong>MHD Assistant</strong>
+              <small><i aria-hidden="true" /> Online · Drag to move</small>
+            </span>
             <button className="chat-close" type="button" onClick={() => setOpen(false)} aria-label="Minimize chat">−</button>
           </header>
           <div className="chat-messages" ref={messagesRef} role="log" aria-live="polite" aria-label="Chat messages">
@@ -1340,6 +1851,9 @@ function ChatAssistant({ onQuoteOpen, page }) {
             <button type="submit" aria-label="Send message" disabled={!draft.trim()}>➤</button>
           </form>
           <p className="chat-disclaimer">Website info only. Confirm prices and availability with our team.</p>
+          <a className="chat-powered" href="https://jobgen.ai" target="_blank" rel="noopener noreferrer">
+            Powered by jobgen.ai
+          </a>
         </section>
       ) : (
         <button
@@ -1368,8 +1882,9 @@ function ChatAssistant({ onQuoteOpen, page }) {
   );
 }
 
-function SiteApp({ page }) {
+function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, onAddToCart, onCartQuantityChange, onCartRemove }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const pageRef = useRef(null);
   const previousPathname = useRef(location.pathname);
   const quoteDialogRef = useRef(null);
@@ -1379,9 +1894,7 @@ function SiteApp({ page }) {
   const menuWasOpen = useRef(false);
   const [activeFilter, setActiveFilter] = useState(() => {
     const category = new URLSearchParams(window.location.search).get("category");
-    return ["pods", "homes", "containers", "bathroom", "storage", "accessories"].includes(category)
-      ? category
-      : "all";
+    return featuredFilterByShopCategory[category] || "all";
   });
   const [heroVideoIndex, setHeroVideoIndex] = useState(0);
   const [heroVideoPaused, setHeroVideoPaused] = useState(false);
@@ -1394,6 +1907,11 @@ function SiteApp({ page }) {
   });
   const [enquiryNote, setEnquiryNote] = useState("");
   const [searchNote, setSearchNote] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchBackgroundIndex, setSearchBackgroundIndex] = useState(0);
+  const [previousSearchBackgroundIndex, setPreviousSearchBackgroundIndex] = useState(null);
+  const searchBackgroundIndexRef = useRef(0);
+  const nextSearchBackgroundIndexRef = useRef(1);
 
   useScrollEffects(reducedMotion, pageRef, page);
   useParticles(pageRef, reducedMotion, page);
@@ -1423,11 +1941,7 @@ function SiteApp({ page }) {
 
   useEffect(() => {
     const category = new URLSearchParams(location.search).get("category");
-    setActiveFilter(
-      ["pods", "homes", "containers", "bathroom", "storage", "accessories"].includes(category)
-        ? category
-        : "all"
-    );
+    setActiveFilter(featuredFilterByShopCategory[category] || "all");
   }, [location.search]);
 
   useEffect(() => {
@@ -1458,32 +1972,38 @@ function SiteApp({ page }) {
   useEffect(() => {
     const pageTitles = {
       home: "Micro Homes Direct | Tiny Homes, Pods & Container Homes Australia",
-      products: "Products | Micro Homes Direct",
+      shop: "Shop Tiny Homes, Pods & Containers | Micro Homes Direct",
       about: "About | Micro Homes Direct",
       finance: "Finance | Micro Homes Direct",
       contact: "Contact | Micro Homes Direct",
       blog: "Blog | Micro Homes Direct",
-      blogGuide: "Tiny Home Cost Guide | Micro Homes Direct"
+      blogGuide: "Tiny Home Cost Guide | Micro Homes Direct",
+      blogModularHome: "Modular and Prefab Homes | Micro Homes Direct",
+      blogExpandableHome: "Planning an Expandable Home | Micro Homes Direct",
+      productDetail: `${product?.name || "Product"} | Micro Homes Direct`
     };
     document.title = pageTitles[page];
     const description = document.querySelector('meta[name="description"]');
     if (description) {
       description.content = {
         home: "Innovative Tiny Homes for Modern Life & Work. Explore backyard pods, micro homes, container homes and flexible spaces from Micro Homes Direct, Australia.",
-        products: "Explore Micro Homes Direct pods, micro homes, container homes, bathroom pods and accessories.",
+        shop: "Browse Micro Homes Direct products by category, with product photos and listed prices for pods, micro homes, containers, toilets and accessories.",
         about: "Learn about Micro Homes Direct, our thoughtfully designed compact spaces, locations and flexible ways to live.",
         finance: "Explore finance information and options for your Micro Homes Direct purchase.",
         contact: "Contact Micro Homes Direct to ask about products, delivery, locations or a quote.",
         blog: "Read practical ideas and original guides about modular homes, backyard pods and flexible small-space living.",
-        blogGuide: "A practical Australian guide to planning the total cost of a tiny home, including delivery, site preparation and approvals."
+        blogGuide: "A practical Australian guide to planning the total cost of a tiny home, including delivery, site preparation and approvals.",
+        blogModularHome: "Learn how modular and prefab homes are built, what the terms mean, and how to compare designs, specifications and site requirements.",
+        blogExpandableHome: "Plan an expandable home around your site, layout, delivery access, foundations, services and local requirements.",
+        productDetail: product?.description || `View ${product?.name || "Micro Homes Direct product"}, listed price, images and product information.`
       }[page];
     }
     document.querySelectorAll(".nav-pill a[aria-current]").forEach((link) => {
       link.removeAttribute("aria-current");
     });
-    const activeNavigationPage = page === "blogGuide" ? "blog" : page;
+    const activeNavigationPage = page.startsWith("blog") ? "blog" : page === "productDetail" ? "shop" : page;
     document.querySelector(`.nav-pill a[data-page="${activeNavigationPage}"]`)?.setAttribute("aria-current", "page");
-  }, [page]);
+  }, [page, product]);
 
   useEffect(() => {
     if (menuOpen) {
@@ -1523,6 +2043,7 @@ function SiteApp({ page }) {
   }, [autoplayPaused, reducedMotion]);
 
   const showSearch = useCallback((open, message = "") => {
+    setSearchOpen(open);
     setSearchNote(message);
     const dialog = searchDialogRef.current;
     if (!dialog) return;
@@ -1530,12 +2051,41 @@ function SiteApp({ page }) {
     else if (!open && dialog.open) dialog.close();
   }, []);
 
+  const navigateFromSearch = useCallback((path) => {
+    showSearch(false);
+    navigate(path);
+  }, [navigate, showSearch]);
+
+  useEffect(() => {
+    if ((!searchOpen && page !== "about" && page !== "contact") || searchBackgroundImages.length < 2) return undefined;
+
+    const showNextImage = () => {
+      const currentIndex = searchBackgroundIndexRef.current;
+      const nextIndex = nextSearchBackgroundIndexRef.current;
+      const image = new Image();
+      image.onload = () => {
+        setPreviousSearchBackgroundIndex(currentIndex);
+        searchBackgroundIndexRef.current = nextIndex;
+        nextSearchBackgroundIndexRef.current = (nextIndex + 1) % searchBackgroundImages.length;
+        setSearchBackgroundIndex(nextIndex);
+      };
+      image.onerror = () => {
+        console.warn(`Unable to load search background image: ${searchBackgroundImages[nextIndex]}`);
+        nextSearchBackgroundIndexRef.current = (nextIndex + 1) % searchBackgroundImages.length;
+      };
+      image.src = searchBackgroundImages[nextIndex];
+    };
+
+    const timer = window.setInterval(showNextImage, 6500);
+    return () => window.clearInterval(timer);
+  }, [page, searchOpen]);
+
   const openQuote = useCallback((preset, open = true) => {
     setMenuOpen(false);
     if (preset) {
       const match = [...document.querySelector("#quote-model").options]
         .find((option) => option.textContent.toLowerCase().includes(preset.toLowerCase()));
-      if (match) setQuoteModel(match.value);
+      setQuoteModel(match ? match.value : preset);
     }
     if (open && !quoteDialogRef.current?.open) quoteDialogRef.current?.showModal();
     else {
@@ -1558,6 +2108,7 @@ function SiteApp({ page }) {
     }
 
     if (event.target.matches("dialog.quote-dialog")) {
+      if (event.target.id === "search-dialog") setSearchOpen(false);
       event.target.close();
       return;
     }
@@ -1589,10 +2140,18 @@ function SiteApp({ page }) {
       <a className="skip-link" href="#top">Skip to content</a>
       <SiteMarkup
         page={page}
+        product={product}
+        onAddToCart={onAddToCart}
+        onCartOpen={onCartOpen}
+        cartCount={cartItems.reduce((total, item) => total + item.quantity, 0)}
         menuOpen={menuOpen}
         onMenuToggle={setMenuOpen}
         onQuoteOpen={openQuote}
         onSearchOpen={showSearch}
+        onSearchNavigate={navigateFromSearch}
+        searchOpen={searchOpen}
+        searchBackgroundIndex={searchBackgroundIndex}
+        previousSearchBackgroundIndex={previousSearchBackgroundIndex}
         gallery={gallery}
         onGallerySelect={setGallery}
         activeFilter={activeFilter}
@@ -1613,6 +2172,14 @@ function SiteApp({ page }) {
         enquiryNote={enquiryNote}
         searchNote={searchNote}
       />
+      {cartOpen && (
+        <CartDrawer
+          items={cartItems}
+          onClose={onCartClose}
+          onQuantityChange={onCartQuantityChange}
+          onRemove={onCartRemove}
+        />
+      )}
       <ChatAssistant onQuoteOpen={openQuote} page={page} />
     </div>
   );
@@ -1624,18 +2191,65 @@ function LegacyPageRedirect() {
   return <Navigate to={`${pagePaths[page]}${search}${hash}`} replace />;
 }
 
+function ProductsPageRedirect() {
+  const { search, hash } = useLocation();
+  return <Navigate to={`/shop${search}${hash}`} replace />;
+}
+
 export default function App() {
+  const [cartItems, setCartItems] = useState(loadCartItems);
+  const [cartOpen, setCartOpen] = useState(false);
+  const openCart = useCallback(() => setCartOpen(true), []);
+  const closeCart = useCallback(() => setCartOpen(false), []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(cartStorageKey, JSON.stringify(cartItems));
+    } catch (error) {
+      console.error("Unable to save the cart.", error);
+    }
+  }, [cartItems]);
+
+  const addToCart = useCallback((slug) => {
+    if (!shopCatalog.products.some((product) => product.slug === slug)) {
+      console.error(`Cannot add unknown product "${slug}" to the cart.`);
+      return;
+    }
+    setCartItems((current) => {
+      const existingItem = current.find((item) => item.slug === slug);
+      return existingItem
+        ? current.map((item) => item.slug === slug ? { ...item, quantity: item.quantity + 1 } : item)
+        : [...current, { slug, quantity: 1 }];
+    });
+    setCartOpen(true);
+  }, []);
+
+  const changeCartQuantity = useCallback((slug, quantity) => {
+    setCartItems((current) => quantity < 1
+      ? current.filter((item) => item.slug !== slug)
+      : current.map((item) => item.slug === slug ? { ...item, quantity } : item));
+  }, []);
+
+  const removeFromCart = useCallback((slug) => {
+    setCartItems((current) => current.filter((item) => item.slug !== slug));
+  }, []);
+
   return (
     <Routes>
-      <Route path="/" element={<SiteApp page="home" />} />
-      <Route path="/products" element={<SiteApp page="products" />} />
-      <Route path="/about" element={<SiteApp page="about" />} />
-      <Route path="/finance" element={<SiteApp page="finance" />} />
-      <Route path="/contact" element={<SiteApp page="contact" />} />
-      <Route path="/blog" element={<SiteApp page="blog" />} />
-      <Route path="/blog/cost-guide" element={<SiteApp page="blogGuide" />} />
+      <Route path="/" element={<SiteApp page="home" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/shop" element={<SiteApp page="shop" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/product/:slug" element={<ProductDetailRoute onAddToCart={addToCart} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/products" element={<ProductsPageRedirect />} />
+      <Route path="/about" element={<SiteApp page="about" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/finance" element={<SiteApp page="finance" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/contact" element={<SiteApp page="contact" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/blog" element={<SiteApp page="blog" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/blog/cost-guide" element={<SiteApp page="blogGuide" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/blog/what-is-a-modular-home" element={<SiteApp page="blogModularHome" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/blog/expandable-homes" element={<SiteApp page="blogExpandableHome" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
       <Route path="/index.html" element={<Navigate to="/" replace />} />
-      <Route path="/products.html" element={<LegacyPageRedirect />} />
+      <Route path="/shop.html" element={<LegacyPageRedirect />} />
+      <Route path="/products.html" element={<ProductsPageRedirect />} />
       <Route path="/about.html" element={<LegacyPageRedirect />} />
       <Route path="/finance.html" element={<LegacyPageRedirect />} />
       <Route path="/contact.html" element={<LegacyPageRedirect />} />

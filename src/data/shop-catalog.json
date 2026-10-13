@@ -1,0 +1,578 @@
+{
+  "source": "https://www.microhomesdirect.au",
+  "updated": "2026-10-13",
+  "categories": [
+    {
+      "slug": "pods",
+      "label": "Backyard Pods / Office Pods",
+      "intro": "Flexible backyard studios, offices and compact pods.",
+      "image": "/assets/shop-category-pods.webp",
+      "count": 18
+    },
+    {
+      "slug": "high-ceiling",
+      "label": "Modern High Ceiling",
+      "intro": "Micro homes with extra vertical space and practical layouts.",
+      "image": "/assets/shop-category-high-ceiling.webp",
+      "count": 9
+    },
+    {
+      "slug": "container-homes",
+      "label": "Container Homes",
+      "intro": "Modular container homes for living, working and extra space.",
+      "image": "/assets/shop-category-container-homes.webp",
+      "count": 14
+    },
+    {
+      "slug": "toilets",
+      "label": "Bathroom & Toilet Pods",
+      "intro": "Portable toilet and bathroom configurations for your site.",
+      "image": "/assets/shop-category-toilets.webp",
+      "count": 6
+    },
+    {
+      "slug": "shipping-containers",
+      "label": "Shipping Containers",
+      "intro": "Shipping containers and fit-outs for storage and practical use.",
+      "image": "/assets/shop-category-shipping-containers.webp",
+      "count": 13
+    },
+    {
+      "slug": "trailers-accessories",
+      "label": "Trailer & Decking",
+      "intro": "Compatible chassis, trailers and decking for your project.",
+      "image": "/assets/shop-category-trailers.webp",
+      "count": 6
+    }
+  ],
+  "products": [
+    {
+      "name": "4M Micro Pod – New Appearance",
+      "category": "pods",
+      "price": "$16,800",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/10/4米长城板苹果舱2.webp",
+      "slug": "4m-micro-pod-new-appearance",
+      "localUrl": "/product/4m-micro-pod-new-appearance"
+    },
+    {
+      "name": "Heavy-Duty Ground Protection Mat",
+      "category": "trailers-accessories",
+      "price": "$230",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/10/地垫效果图6.webp",
+      "slug": "heavy-duty-ground-protection-mat",
+      "localUrl": "/product/heavy-duty-ground-protection-mat"
+    },
+    {
+      "name": "H10FT – 35 Drawers & 2 Cabinets Workbench Storage Cabinet",
+      "category": "shipping-containers",
+      "price": "$3,780",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/10/银色工具柜1.webp",
+      "slug": "h10ft-35-drawers-2-cabinets-workbench-storage-cabinet",
+      "localUrl": "/product/h10ft-35-drawers-2-cabinets-workbench-storage-cabinet"
+    },
+    {
+      "name": "10FT – 18 Drawers & 2 Cabinets Garage Storage Cabinet",
+      "category": "shipping-containers",
+      "price": "$2,280",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/10/工具柜14.webp",
+      "slug": "10ft-18-drawers-2-cabinets-garage-storage-cabinet",
+      "localUrl": "/product/10ft-18-drawers-2-cabinets-garage-storage-cabinet"
+    },
+    {
+      "name": "7FT – 10 Drawers & 2Cabinets Workbench Storage Cabinet",
+      "category": "shipping-containers",
+      "price": "$1,510",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/10/工具柜效果图7.webp",
+      "slug": "7ft-10-drawers-2cabinets-workbench-storage-cabinet",
+      "localUrl": "/product/7ft-10-drawers-2cabinets-workbench-storage-cabinet"
+    },
+    {
+      "name": "7FT – 20 Drawers Workbench Storage Cabinet",
+      "category": "shipping-containers",
+      "price": "$1,640",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/10/工具柜效果图1.webp",
+      "slug": "7ft-20-drawers-workbench-storage-cabinet",
+      "localUrl": "/product/7ft-20-drawers-workbench-storage-cabinet"
+    },
+    {
+      "name": "Container Mounted Shelter—40ft x40ft Container Dome (12m x 12m)",
+      "category": "shipping-containers",
+      "price": "$5,620",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/10/集装箱帐篷图片制作-19.webp",
+      "slug": "container-mounted-shelter-40ft-x40ft-container-dome-12m-x-12m",
+      "localUrl": "/product/container-mounted-shelter-40ft-x40ft-container-dome-12m-x-12m"
+    },
+    {
+      "name": "Container Mounted Shelter—30ft x40ft Container Dome (9m x 12m)",
+      "category": "shipping-containers",
+      "price": "$4,290",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/10/集装箱帐篷图片制作-12.webp",
+      "slug": "container-mounted-shelter-30ft-x40ft-container-dome-9m-x-12m",
+      "localUrl": "/product/container-mounted-shelter-30ft-x40ft-container-dome-9m-x-12m"
+    },
+    {
+      "name": "Container Mounted Shelter—20ft x40ft Container Dome (6m x 12m)",
+      "category": "shipping-containers",
+      "price": "$2,800",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/10/20-40集装箱帐篷3.webp",
+      "slug": "container-mounted-shelter-20ft-x40ft-container-dome-6m-x-12m",
+      "localUrl": "/product/container-mounted-shelter-20ft-x40ft-container-dome-6m-x-12m"
+    },
+    {
+      "name": "Container Mounted Shelter—20ft x 20ft Container Dome (6m x 6m)",
+      "category": "shipping-containers",
+      "price": "$1,550",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/10/20尺集装箱帐篷效果图.webp",
+      "slug": "container-mounted-shelter-20ft-x-20ft-container-dome-6m-x-6m",
+      "localUrl": "/product/container-mounted-shelter-20ft-x-20ft-container-dome-6m-x-6m"
+    },
+    {
+      "name": "40FT Container House —3 Bedrooms&3 Bathrooms",
+      "category": "high-ceiling",
+      "price": "$59,466",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2025/11/2024_09_02_14_16_IMG_1014.png",
+      "slug": "40ft-container-house-3-bedrooms3-bathrooms",
+      "localUrl": "/product/40ft-container-house-3-bedrooms3-bathrooms"
+    },
+    {
+      "name": "40FT Container House —2 Bedrooms&2 Bathrooms",
+      "category": "high-ceiling",
+      "price": "$54,600",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2025/11/2024_04_29_17_30_IMG_6007.png",
+      "slug": "40ft-container-house-2-bedrooms2-bathrooms",
+      "localUrl": "/product/40ft-container-house-2-bedrooms2-bathrooms"
+    },
+    {
+      "name": "40FT Container House —1 Bedroom, 1 Living Room & 1 Bathroom",
+      "category": "high-ceiling",
+      "price": "$49,555",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2025/11/2024_04_26_15_11_IMG_5814-1.png",
+      "slug": "40ft-container-house-1-bedroom-1-living-room-1-bathroom",
+      "localUrl": "/product/40ft-container-house-1-bedroom-1-living-room-1-bathroom"
+    },
+    {
+      "name": "40FTContainer House —1 Bathroom & 1 Living Room",
+      "category": "high-ceiling",
+      "price": "$48,246",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2025/11/2024_04_15_09_38_IMG_5452.png",
+      "slug": "40ftcontainer-house-1-bathroom-1-living-room",
+      "localUrl": "/product/40ftcontainer-house-1-bathroom-1-living-room"
+    },
+    {
+      "name": "6M High Ceiling Portable Granny Flat",
+      "category": "high-ceiling",
+      "price": "$43,800",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/09/主图12.webp",
+      "slug": "6m-high-ceiling-portable-granny-flat",
+      "localUrl": "/product/6m-high-ceiling-portable-granny-flat"
+    },
+    {
+      "name": "3M Micro Pod – New Appearance",
+      "category": "pods",
+      "price": "$12,800",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/08/3米带橱柜新外观.webp",
+      "slug": "3m-micro-pod-new-appearance",
+      "localUrl": "/product/3m-micro-pod-new-appearance"
+    },
+    {
+      "name": "4M 13FT Backyard Office -（New Appearance）",
+      "category": "pods",
+      "price": "$17,500",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/07/网站主图.webp",
+      "slug": "13ft-container-office-（new-appearance）",
+      "localUrl": "/product/13ft-container-office-（new-appearance）"
+    },
+    {
+      "name": "K7 Space Capsule",
+      "category": "high-ceiling",
+      "price": "$107,800",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/07/1.-K7-Space-Capsule.webp",
+      "slug": "k7-space-capsule",
+      "localUrl": "/product/k7-space-capsule"
+    },
+    {
+      "name": "30FT Container Home – 2 Bedrooms",
+      "category": "container-homes",
+      "price": "$59,500",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/30FT主图.webp",
+      "slug": "30ft-container-home-2-bedroom",
+      "localUrl": "/product/30ft-container-home-2-bedroom"
+    },
+    {
+      "name": "6M Container Home —N01",
+      "category": "container-homes",
+      "price": "$43,500",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/N01主图.webp",
+      "slug": "6m-container-home-n01",
+      "localUrl": "/product/6m-container-home-n01"
+    },
+    {
+      "name": "6M Container Home-13FT With Bathroom（New Appearance）",
+      "category": "container-homes",
+      "price": "$29,500",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/0206-13FT-大卫生间款主图.webp",
+      "slug": "6m-container-home-13ft-with-bathroom-2",
+      "localUrl": "/product/6m-container-home-13ft-with-bathroom-2"
+    },
+    {
+      "name": "Decking–3M/4M/6M",
+      "category": "trailers-accessories",
+      "price": "$3,975",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/1.-Decking.webp",
+      "slug": "decking-3m-4m-6m",
+      "localUrl": "/product/decking-3m-4m-6m"
+    },
+    {
+      "name": "6M Micro Pod – New Appearance",
+      "category": "pods",
+      "price": "$23,500",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/网站主图.webp",
+      "slug": "6m-micro-pod-new-appearance",
+      "localUrl": "/product/6m-micro-pod-new-appearance"
+    },
+    {
+      "name": "6M20FT Backyard Office",
+      "category": "pods",
+      "price": "$23,000",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/图片背景替换1-2.webp",
+      "slug": "20ft-container-office",
+      "localUrl": "/product/20ft-container-office"
+    },
+    {
+      "name": "20FT Foldable Warehouse –3 side entry doors with 2 Internal Partitioning",
+      "category": "shipping-containers",
+      "price": "$5,600",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/1.-20FT-Foldable-Warehouse-–3-side-entry-doors-with-2-Internal-Partitioning.webp",
+      "slug": "20ft-foldable-warehouse-3-side-entry-doors-with-2-internal-partitioning",
+      "localUrl": "/product/20ft-foldable-warehouse-3-side-entry-doors-with-2-internal-partitioning"
+    },
+    {
+      "name": "20FT Foldable Warehouse — 2 side entry doors with Internal Partitioning",
+      "category": "shipping-containers",
+      "price": "$5,206",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/2.-20FT-Foldable-Warehouse-—-2-side-entry-doors-with-Internal-Partitioning.webp",
+      "slug": "20ft-foldable-warehouse-2-side-entry-doors-with-internal-partitioning",
+      "localUrl": "/product/20ft-foldable-warehouse-2-side-entry-doors-with-internal-partitioning"
+    },
+    {
+      "name": "6M Container Home-One Large Bedroom And One Small Bedroom",
+      "category": "container-homes",
+      "price": "$38,500",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/0206拼接外墙款主图.webp",
+      "slug": "6m-container-home-one-large-bedroom-and-one-small-bedroom",
+      "localUrl": "/product/6m-container-home-one-large-bedroom-and-one-small-bedroom"
+    },
+    {
+      "name": "6M Container Home —H02（Dual Independent Spaces）",
+      "category": "container-homes",
+      "price": "$56,900",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/H02款-主图.webp",
+      "slug": "6m-container-home-h02（dual-independent-spaces）",
+      "localUrl": "/product/6m-container-home-h02（dual-independent-spaces）"
+    },
+    {
+      "name": "Portable Toilet & Shower – V2 Combined toilet and shower unit",
+      "category": "toilets",
+      "price": "$10,300",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/1.-Portable-Toilet-Shower-–-V2-Combined-toilet-and-shower-unit.webp",
+      "slug": "portable-toilet-shower-v2-combined-toilet-and-shower-unit",
+      "localUrl": "/product/portable-toilet-shower-v2-combined-toilet-and-shower-unit"
+    },
+    {
+      "name": "40ft High Cube Four Multi Doors Container",
+      "category": "shipping-containers",
+      "price": "$11,880",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/3.-40ft-High-Cube-Four-Multi-Doors-Container.webp",
+      "slug": "40ft-high-cube-four-multi-doors-container",
+      "localUrl": "/product/40ft-high-cube-four-multi-doors-container"
+    },
+    {
+      "name": "40ft High Cube Three Multi Doors Container",
+      "category": "shipping-containers",
+      "price": "$11,880",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/4.-40ft-High-Cube-Three-Multi-Doors-Container.webp",
+      "slug": "40ft-high-cube-three-multi-doors-container",
+      "localUrl": "/product/40ft-high-cube-three-multi-doors-container"
+    },
+    {
+      "name": "40ft High Cube Two Multi Doors Container",
+      "category": "shipping-containers",
+      "price": "$11,880",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/5.-40ft-High-Cube-Two-Multi-Doors-Container.webp",
+      "slug": "40ft-high-cube-two-multi-doors-container",
+      "localUrl": "/product/40ft-high-cube-two-multi-doors-container"
+    },
+    {
+      "name": "Modular Cabin—20FT*12FT",
+      "category": "high-ceiling",
+      "price": "$49,920",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/06/2.-Modular-Cabin.webp",
+      "slug": "modular-cabin-20ft13ft",
+      "localUrl": "/product/modular-cabin-20ft13ft"
+    },
+    {
+      "name": "6M Push Out Micro Pod – With Bathroom & Kitchenette（New layout）",
+      "category": "pods",
+      "price": "$28,580",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/05/网站主图.webp",
+      "slug": "6m-push-out-micro-pod-with-bathroom-kitchenette（new-layout）",
+      "localUrl": "/product/6m-push-out-micro-pod-with-bathroom-kitchenette（new-layout）"
+    },
+    {
+      "name": "6M Micro Pod – With Bathroom & Kitchenette（Large bathroom）",
+      "category": "pods",
+      "price": "$21,520",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/05/网页主图.webp",
+      "slug": "6m-micro-pod-with-bathroom-kitchenette（large-bathroom）",
+      "localUrl": "/product/6m-micro-pod-with-bathroom-kitchenette（large-bathroom）"
+    },
+    {
+      "name": "WPC Decking",
+      "category": "trailers-accessories",
+      "price": "$300",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/04/2.-WPC-Decking.webp",
+      "slug": "wpc-decking",
+      "localUrl": "/product/wpc-decking"
+    },
+    {
+      "name": "6M Container Home – Empty",
+      "category": "container-homes",
+      "price": "$31,000",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/04/0206内空款主图.webp",
+      "slug": "6m-container-home-empty",
+      "localUrl": "/product/6m-container-home-empty"
+    },
+    {
+      "name": "4M 13FT Backyard Office",
+      "category": "pods",
+      "price": "$13,800",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/04/主图.webp",
+      "slug": "13ft-container-office",
+      "localUrl": "/product/13ft-container-office"
+    },
+    {
+      "name": "6M Container Home-13FT With Bathroom",
+      "category": "container-homes",
+      "price": "$24,000",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/04/0206-13FT-大卫生间常规墙板-主图.webp",
+      "slug": "6m-container-home-13ft-with-bathroom",
+      "localUrl": "/product/6m-container-home-13ft-with-bathroom"
+    },
+    {
+      "name": "20 FT Micro Home Trailer Chassis—6M Container Home",
+      "category": "trailers-accessories",
+      "price": "$15,800",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/04/3.-20-FT-Micro-Home-Trailer-Chassis—6M-Container-Home.webp",
+      "slug": "20-ft-micro-home-trailer-chassis-6m-container-home",
+      "localUrl": "/product/20-ft-micro-home-trailer-chassis-6m-container-home"
+    },
+    {
+      "name": "20 FT Micro Home Trailer Chassis—6M Push Out",
+      "category": "trailers-accessories",
+      "price": "$14,900",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/04/图片背景置换.webp",
+      "slug": "20-ft-micro-home-trailer-chassis-6m-push-out",
+      "localUrl": "/product/20-ft-micro-home-trailer-chassis-6m-push-out"
+    },
+    {
+      "name": "6M Container Home with 2 Bedroom—Glass curtain wall on one side",
+      "category": "container-homes",
+      "price": "$38,500",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/04/0206玻璃幕墙款主图.webp",
+      "slug": "6m-container-home-with-2-bedroom-glass-curtain-wall-on-one-side",
+      "localUrl": "/product/6m-container-home-with-2-bedroom-glass-curtain-wall-on-one-side"
+    },
+    {
+      "name": "Portable Toilet & Shower – V2 Left Toilet, Right Shower",
+      "category": "toilets",
+      "price": "$6,950",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/04/2.-Portable-Toilet-Shower-–-V2-Left-Toilet-Right-Shower.webp",
+      "slug": "portable-toilet-shower-v2-left-toilet-right-shower",
+      "localUrl": "/product/portable-toilet-shower-v2-left-toilet-right-shower"
+    },
+    {
+      "name": "30ft Class 1a MICRO House – 2 Bedroom",
+      "category": "high-ceiling",
+      "price": "$84,200",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/04/3.-30ft-Class-1a-MICRO-House-–-2-Bedroom.webp",
+      "slug": "30ft-class-1a-micro-house-2-bedroom",
+      "localUrl": "/product/30ft-class-1a-micro-house-2-bedroom"
+    },
+    {
+      "name": "12M Portable Granny Flat with 3 Bedroom with a terrace",
+      "category": "container-homes",
+      "price": "$65,500",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2026/02/40-FT-带露台3房主图.webp",
+      "slug": "12m-portable-granny-flat-with-3-bedroom-with-a-terrace",
+      "localUrl": "/product/12m-portable-granny-flat-with-3-bedroom-with-a-terrace"
+    },
+    {
+      "name": "4M Micro Pod – with Cabinets",
+      "category": "pods",
+      "price": "$12,920",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2025/10/效果图.webp",
+      "slug": "4m-micro-pod-with-cabinets",
+      "localUrl": "/product/4m-micro-pod-with-cabinets"
+    },
+    {
+      "name": "6M Push Out Micro Pod – with Bedroom",
+      "category": "pods",
+      "price": "$27,120",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2025/07/主图-1.webp",
+      "slug": "6m-push-out-apple-pod-with-bedroom",
+      "localUrl": "/product/6m-push-out-apple-pod-with-bedroom"
+    },
+    {
+      "name": "6M Push Out Micro Pod – Empty",
+      "category": "pods",
+      "price": "$22,650",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2025/01/6米拓展内空主图.webp",
+      "slug": "6m-push-out-apple-podempty-inside",
+      "localUrl": "/product/6m-push-out-apple-podempty-inside"
+    },
+    {
+      "name": "6M Micro Pod – Empty",
+      "category": "pods",
+      "price": "$18,100",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2025/01/6米内空主图.webp",
+      "slug": "6m-apple-podempty-inside",
+      "localUrl": "/product/6m-apple-podempty-inside"
+    },
+    {
+      "name": "4M Micro Pod – Empty",
+      "category": "pods",
+      "price": "$11,360",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2025/01/4米内空主图.webp",
+      "slug": "4m-apple-pod（empty-inside）",
+      "localUrl": "/product/4m-apple-pod（empty-inside）"
+    },
+    {
+      "name": "3M Micro pod – Empty",
+      "category": "pods",
+      "price": "$9,775",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2025/01/3米内空主图1.webp",
+      "slug": "3m-apple-podempty-inside",
+      "localUrl": "/product/3m-apple-podempty-inside"
+    },
+    {
+      "name": "20 FT Micro Home Trailer Chassis—6M Apple Pod",
+      "category": "trailers-accessories",
+      "price": "$14,200",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2025/01/5.-20-FT-Micro-Home-Trailer-Chassis—6M-Apple-Pod.webp",
+      "slug": "trailer-chassis",
+      "localUrl": "/product/trailer-chassis"
+    },
+    {
+      "name": "6M Container Home – 2 Bedroom with Terrace",
+      "category": "container-homes",
+      "price": "$45,650",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/0206两室一厅带露台.webp",
+      "slug": "customizable-foldable-houses",
+      "localUrl": "/product/customizable-foldable-houses"
+    },
+    {
+      "name": "6M Container Home – 6M-V4",
+      "category": "container-homes",
+      "price": "$18,500",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/0207房屋主图.webp",
+      "slug": "2suihe-0208-prefab-mobile-portable-tiny-house-home",
+      "localUrl": "/product/2suihe-0208-prefab-mobile-portable-tiny-house-home"
+    },
+    {
+      "name": "6M Container Home – Open Space",
+      "category": "container-homes",
+      "price": "$32,100",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/0206无独立房间款主图.webp",
+      "slug": "0206-suihe-prefab-mobile-portable-expandable-container-house",
+      "localUrl": "/product/0206-suihe-prefab-mobile-portable-expandable-container-house"
+    },
+    {
+      "name": "Portable Toilet & Shower – V1 Combined toilet and shower unit",
+      "category": "toilets",
+      "price": "$7,800",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/3.-Portable-Toilet-Shower-–-V1-Combined-toilet-and-shower-unit.webp",
+      "slug": "portable-outdoor-public-toilet-for-convenient-use-anywhere-2",
+      "localUrl": "/product/portable-outdoor-public-toilet-for-convenient-use-anywhere-2"
+    },
+    {
+      "name": "Portable Toilet V1—Dual toilet",
+      "category": "toilets",
+      "price": "$6,850",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/4.-Portable-Toilet-V1—Dual-toilet.webp",
+      "slug": "outdoor-mobile-twin-public-toilet-with-shower-prefab-portable-option-for-public-use",
+      "localUrl": "/product/outdoor-mobile-twin-public-toilet-with-shower-prefab-portable-option-for-public-use"
+    },
+    {
+      "name": "Portable Toilet V2—Single toilet",
+      "category": "toilets",
+      "price": "$4,250",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/5.-Portable-Toilet-V2—Single-toilet.webp",
+      "slug": "outdoor-prefab-single-mobile-portable-public-toilet-easy-to-move-toilets-for-public-use",
+      "localUrl": "/product/outdoor-prefab-single-mobile-portable-public-toilet-easy-to-move-toilets-for-public-use"
+    },
+    {
+      "name": "Portable Toilet – Disability Access V1",
+      "category": "toilets",
+      "price": "$12,430",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/6.-Portable-Toilet-–-Disability-Access-V1.webp",
+      "slug": "suihe-10ft-outdoor-prefab-mobile-portable-public-toilet-for-wheel-chairs",
+      "localUrl": "/product/suihe-10ft-outdoor-prefab-mobile-portable-public-toilet-for-wheel-chairs"
+    },
+    {
+      "name": "12M Portable Granny Flat with 3 Bedroom",
+      "category": "container-homes",
+      "price": "$61,500",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/40FT-3房-主图.webp",
+      "slug": "12m-regular-micro-house",
+      "localUrl": "/product/12m-regular-micro-house"
+    },
+    {
+      "name": "4M Micro Pod – With Bathroom",
+      "category": "pods",
+      "price": "$13,900",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/4米带卫生间主图.webp",
+      "slug": "4m-apple-pod",
+      "localUrl": "/product/4m-apple-pod"
+    },
+    {
+      "name": "3M Office Pod – With Cabinets",
+      "category": "pods",
+      "price": "$11,640",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/3米带橱柜主图1.webp",
+      "slug": "3m-apple-pod",
+      "localUrl": "/product/3m-apple-pod"
+    },
+    {
+      "name": "6M Container Home with 2 Bedroom",
+      "category": "container-homes",
+      "price": "$33,100",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/0206两室一厅效果图2.webp",
+      "slug": "6m-regular-micro-house",
+      "localUrl": "/product/6m-regular-micro-house"
+    },
+    {
+      "name": "9M High Ceiling Portable Granny Flat with 2 Bedroom",
+      "category": "high-ceiling",
+      "price": "$51,750",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/12/4.-9M-High-Ceiling-Portable-Granny-Flat-with-2-Bedroom.webp",
+      "slug": "9m-high-ceiling-modern-micro-house",
+      "localUrl": "/product/9m-high-ceiling-modern-micro-house"
+    },
+    {
+      "name": "6M Push Out Micro Pod – With Bathroom & Kitchenette （Regular Layout）",
+      "category": "pods",
+      "price": "$25,910",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/11/6米拓展老款主图.webp",
+      "slug": "6m-push-out-apple-pod",
+      "localUrl": "/product/6m-push-out-apple-pod"
+    },
+    {
+      "name": "6M Micro Pod – With Bathroom & Kitchenette（Small Bathroom）",
+      "category": "pods",
+      "price": "$19,950",
+      "image": "https://www.microhomesdirect.au/wp-content/uploads/2024/11/6米苹果舱老款.webp",
+      "slug": "6m-apple-pod",
+      "localUrl": "/product/6m-apple-pod"
+    }
+  ]
+}
