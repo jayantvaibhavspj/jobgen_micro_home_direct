@@ -14,7 +14,6 @@ import woodenCabinVideo from "../assets/Modern_wooden_modular_cabin_panning_2026
 import officePodVideo from "../assets/Modular_pod_office_in_courtyard_20261012215016_gwr_video_mvp.mp4";
 import capsulePodVideo from "../assets/Capsule_pod_house_exterior_panning_20261012215023_gwr_video_mvp.mp4";
 import gardenHomeVideo from "../assets/Prefabricated_tiny_house_in_garden_20261012215030.mp4";
-import heroVideoPoster from "../assets/hero-home.webp";
 import "../styles.css";
 
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
@@ -231,7 +230,82 @@ function HeroVideoPreview({
   onTogglePaused,
   reducedMotion
 }) {
+  const videoRefs = useRef([]);
+  const activeLayerRef = useRef(-1);
+  const [activeLayer, setActiveLayer] = useState(-1);
+  const [fadingLayer, setFadingLayer] = useState(null);
   const video = heroVideos[videoIndex];
+
+  useEffect(() => {
+    const currentLayer = activeLayerRef.current;
+    const nextLayer = currentLayer === 0 ? 1 : 0;
+    const nextVideo = videoRefs.current[nextLayer];
+    if (!nextVideo) return undefined;
+
+    let cancelled = false;
+    let loaded = false;
+    const activateNextVideo = () => {
+      if (loaded) return;
+      loaded = true;
+      nextVideo.removeEventListener("loadeddata", activateNextVideo);
+      if (cancelled) return;
+
+      nextVideo.playbackRate = 0.6;
+      setFadingLayer(currentLayer >= 0 ? currentLayer : null);
+      activeLayerRef.current = nextLayer;
+      setActiveLayer(nextLayer);
+    };
+
+    nextVideo.pause();
+    nextVideo.src = video.src;
+    nextVideo.addEventListener("error", handleLoadError, { once: true });
+    nextVideo.load();
+
+    if (nextVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      activateNextVideo();
+    } else {
+      nextVideo.addEventListener("loadeddata", activateNextVideo);
+    }
+
+    return () => {
+      cancelled = true;
+      nextVideo.removeEventListener("loadeddata", activateNextVideo);
+      nextVideo.removeEventListener("error", handleLoadError);
+    };
+
+    function handleLoadError() {
+      nextVideo.removeEventListener("loadeddata", activateNextVideo);
+      console.error(`Hero preview video failed to load: ${video.src}`);
+    }
+  }, [videoIndex, video.src]);
+
+  useEffect(() => {
+    const activeVideo = videoRefs.current[activeLayer];
+    if (!activeVideo) return;
+    const inactiveVideo = videoRefs.current[activeLayer === 0 ? 1 : 0];
+    if (paused || reducedMotion) {
+      activeVideo.pause();
+      inactiveVideo?.pause();
+      return;
+    }
+
+    const playPromise = activeVideo.play();
+    if (playPromise) {
+      playPromise.catch((error) => {
+        if (error.name !== "AbortError") {
+          console.error("Hero preview video failed to play.", error);
+        }
+      });
+    }
+  }, [activeLayer, paused, reducedMotion]);
+
+  const handleFadeComplete = (event, layer) => {
+    if (event.propertyName === "opacity" && layer === fadingLayer) {
+      event.currentTarget.pause();
+      setFadingLayer(null);
+    }
+  };
+
   return (
     <div
       className="hero-product hero-video-preview glass-card"
@@ -240,20 +314,22 @@ function HeroVideoPreview({
         <span>UP NEXT</span>
         <span className="live-dot">VIDEO {String(videoIndex + 1).padStart(2, "0")}</span>
       </span>
-      <video
-        key={video.src}
-        className="hero-video-preview-media"
-        src={video.src}
-        poster={heroVideoPoster}
-        autoPlay={!reducedMotion && !paused}
-        muted
-        loop
-        playsInline
-        ref={setHeroVideoPlaybackRate}
-        preload="metadata"
-        aria-hidden="true"
-        tabIndex={-1}
-      />
+      <div className="hero-video-preview-visual">
+        {[0, 1].map((layer) => (
+          <video
+            key={layer}
+            ref={(element) => { videoRefs.current[layer] = element; }}
+            className={`hero-video-preview-media${activeLayer === layer ? " is-active" : ""}${fadingLayer === layer ? " is-fading-out" : ""}`}
+            muted
+            loop
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+            tabIndex={-1}
+            onTransitionEnd={(event) => handleFadeComplete(event, layer)}
+          />
+        ))}
+      </div>
       <span className="hero-video-preview-footer">
         <span className="hero-video-preview-label">{video.label}</span>
         <span className="hero-video-preview-count">{String(videoIndex + 1).padStart(2, "0")} / {String(heroVideos.length).padStart(2, "0")}</span>
@@ -465,6 +541,7 @@ function useScrollEffects(reducedMotion, pageRef) {
         });
         carouselObserver.observe(featureCarousel);
       }
+      featureCarousel.classList.add("is-ready");
       updateFeatureCarousel();
       syncCarouselTimer();
     }
