@@ -395,7 +395,7 @@ function useReducedMotion() {
   return reducedMotion;
 }
 
-function useScrollEffects(reducedMotion, pageRef) {
+function useScrollEffects(reducedMotion, pageRef, pageKey) {
   useEffect(() => {
     const page = pageRef.current;
     if (!page) return undefined;
@@ -592,10 +592,10 @@ function useScrollEffects(reducedMotion, pageRef) {
       window.removeEventListener("scroll", requestScrollUpdate);
       window.removeEventListener("resize", requestScrollUpdate);
     };
-  }, [pageRef, reducedMotion]);
+  }, [pageRef, reducedMotion, pageKey]);
 }
 
-function useParticles(pageRef, reducedMotion) {
+function useParticles(pageRef, reducedMotion, pageKey) {
   useEffect(() => {
     const canvas = pageRef.current?.querySelector("#particles");
     const context = canvas?.getContext("2d");
@@ -657,7 +657,7 @@ function useParticles(pageRef, reducedMotion) {
       document.removeEventListener("visibilitychange", startParticles);
       window.removeEventListener("resize", resizeCanvas);
     };
-  }, [pageRef, reducedMotion]);
+  }, [pageRef, reducedMotion, pageKey]);
 }
 
 function SiteMarkup({
@@ -1395,8 +1395,8 @@ function SiteApp({ page }) {
   const [enquiryNote, setEnquiryNote] = useState("");
   const [searchNote, setSearchNote] = useState("");
 
-  useScrollEffects(reducedMotion, pageRef);
-  useParticles(pageRef, reducedMotion);
+  useScrollEffects(reducedMotion, pageRef, page);
+  useParticles(pageRef, reducedMotion, page);
 
   useEffect(() => {
     const handlePointerMove = (event) => {
