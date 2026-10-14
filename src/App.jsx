@@ -1014,8 +1014,6 @@ function SiteMarkup({
   onAddToCart,
   onCartOpen,
   cartCount,
-  menuOpen,
-  onMenuToggle,
   onQuoteOpen,
   onSearchOpen,
   onSearchNavigate,
@@ -1128,40 +1126,6 @@ function SiteMarkup({
 
       if (page === "home" && node.name === "div" && classes.split(/\s+/).includes("widget-stat")) {
         return <></>;
-      }
-
-      if (node.name === "nav" && classes.split(/\s+/).includes("nav-pill")) {
-        return (
-          <>
-            {menuOpen && (
-              <button
-                className="sidebar-backdrop"
-                type="button"
-                aria-label="Close navigation"
-                onClick={() => onMenuToggle(false)}
-              />
-            )}
-            <nav
-              {...props}
-              className={`nav-pill${menuOpen ? " open" : ""}`}
-              aria-hidden={!menuOpen && window.matchMedia("(max-width: 900px)").matches}
-              onClick={(event) => {
-                const clickedControl = event.target.closest(
-                  "a, .sidebar-close, .nav-search, .sidebar-quote-link"
-                );
-                if (clickedControl) {
-                  clickedControl.blur();
-                  if (window.matchMedia("(min-width: 901px)").matches) {
-                    document.body.classList.add("sidebar-clicked");
-                  }
-                  onMenuToggle(false);
-                }
-              }}
-            >
-              {children}
-            </nav>
-          </>
-        );
       }
 
       if (node.name === "a" && node.attribs["data-filter-category"]) {
@@ -1289,26 +1253,6 @@ function SiteMarkup({
       if (node.name === "button" && classes.split(/\s+/).includes("round-arrow")) {
         const model = featuredModels[featuredIndex].name;
         return <button {...props} data-model={model} aria-label={`Request a quote for the ${model}`}>{children}</button>;
-      }
-
-      if (node.name === "button" && classes.split(/\s+/).includes("menu-toggle")) {
-        return (
-          <button
-            {...props}
-            aria-expanded={menuOpen}
-            aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-            onClick={() => onMenuToggle(!menuOpen)}
-          >
-            {children}
-          </button>
-        );
-      }
-      if (node.name === "button" && classes.split(/\s+/).includes("sidebar-close")) {
-        return (
-          <button {...props} onClick={() => onMenuToggle(false)}>
-            {children}
-          </button>
-        );
       }
 
       if (node.name === "dialog" && node.attribs.id === "quote-dialog") {
@@ -1453,7 +1397,7 @@ function SiteMarkup({
     }
   }), [
     page, product, onAddToCart, onCartOpen, cartCount,
-    menuOpen, onMenuToggle, gallery, onGallerySelect, activeFilter, onFilterChange,
+    gallery, onGallerySelect, activeFilter, onFilterChange,
     heroVideoIndex, onHeroVideoChange, heroVideoPaused, onHeroVideoTogglePaused,
     featuredIndex, onFeaturedChange, autoplayPaused, onAutoplayToggle, reducedMotion,
     quoteDialogRef, searchDialogRef,
@@ -1791,8 +1735,6 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
   const quoteDialogRef = useRef(null);
   const searchDialogRef = useRef(null);
   const reducedMotion = useReducedMotion();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuWasOpen = useRef(false);
   const [activeFilter, setActiveFilter] = useState(() => {
     const category = new URLSearchParams(window.location.search).get("category");
     return featuredFilterByShopCategory[category] || "all";
@@ -1905,29 +1847,6 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
     const activeNavigationPage = page.startsWith("blog") ? "blog" : page === "productDetail" ? "shop" : page;
     document.querySelector(`.nav-pill a[data-page="${activeNavigationPage}"]`)?.setAttribute("aria-current", "page");
   }, [page, product]);
-
-  useEffect(() => {
-    if (menuOpen) {
-      const previousOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      document.querySelector(".sidebar-close")?.focus();
-      const handleKeyDown = (event) => {
-        if (event.key === "Escape") setMenuOpen(false);
-      };
-      document.addEventListener("keydown", handleKeyDown);
-      menuWasOpen.current = true;
-      return () => {
-        document.body.style.overflow = previousOverflow;
-        document.removeEventListener("keydown", handleKeyDown);
-      };
-    }
-
-    if (menuWasOpen.current) {
-      document.querySelector(".menu-toggle")?.focus();
-      menuWasOpen.current = false;
-    }
-    return undefined;
-  }, [menuOpen]);
 
   useEffect(() => {
     if (reducedMotion) setAutoplayPaused(true);
@@ -2045,8 +1964,6 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
         onAddToCart={onAddToCart}
         onCartOpen={onCartOpen}
         cartCount={cartItems.reduce((total, item) => total + item.quantity, 0)}
-        menuOpen={menuOpen}
-        onMenuToggle={setMenuOpen}
         onQuoteOpen={openQuote}
         onSearchOpen={showSearch}
         onSearchNavigate={navigateFromSearch}
