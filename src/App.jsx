@@ -269,7 +269,7 @@ function HeroVideoBackground({ videoIndex, onVideoEnded, paused, reducedMotion }
   );
 }
 
-function HeroVideoPreview({
+function TransitionVideoGallery({
   videoIndex,
   onSelect,
   paused,
@@ -277,151 +277,62 @@ function HeroVideoPreview({
   reducedMotion
 }) {
   const videoRefs = useRef([]);
-  const activeLayerRef = useRef(-1);
-  const [activeLayer, setActiveLayer] = useState(-1);
-  const [fadingLayer, setFadingLayer] = useState(null);
-  const video = heroVideos[videoIndex];
 
   useEffect(() => {
-    const currentLayer = activeLayerRef.current;
-    const nextLayer = currentLayer === 0 ? 1 : 0;
-    const nextVideo = videoRefs.current[nextLayer];
-    if (!nextVideo) return undefined;
-
-    let cancelled = false;
-    let loaded = false;
-    const activateNextVideo = () => {
-      if (loaded) return;
-      loaded = true;
-      nextVideo.removeEventListener("loadeddata", activateNextVideo);
-      if (cancelled) return;
-
-      nextVideo.playbackRate = 0.6;
-      setFadingLayer(currentLayer >= 0 ? currentLayer : null);
-      activeLayerRef.current = nextLayer;
-      setActiveLayer(nextLayer);
-    };
-
-    nextVideo.pause();
-    nextVideo.src = video.src;
-    nextVideo.addEventListener("error", handleLoadError, { once: true });
-    nextVideo.load();
-
-    if (nextVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      activateNextVideo();
-    } else {
-      nextVideo.addEventListener("loadeddata", activateNextVideo);
-    }
-
-    return () => {
-      cancelled = true;
-      nextVideo.removeEventListener("loadeddata", activateNextVideo);
-      nextVideo.removeEventListener("error", handleLoadError);
-    };
-
-    function handleLoadError() {
-      nextVideo.removeEventListener("loadeddata", activateNextVideo);
-      console.error(`Hero preview video failed to load: ${video.src}`);
-    }
-  }, [videoIndex, video.src]);
-
-  useEffect(() => {
-    const activeVideo = videoRefs.current[activeLayer];
-    if (!activeVideo) return;
-    const inactiveVideo = videoRefs.current[activeLayer === 0 ? 1 : 0];
-    if (paused || reducedMotion) {
-      activeVideo.pause();
-      inactiveVideo?.pause();
-      return;
-    }
-
-    const playPromise = activeVideo.play();
-    if (playPromise) {
-      playPromise.catch((error) => {
-        if (error.name !== "AbortError") {
-          console.error("Hero preview video failed to play.", error);
-        }
-      });
-    }
-  }, [activeLayer, paused, reducedMotion]);
-
-  const handleFadeComplete = (event, layer) => {
-    if (event.propertyName === "opacity" && layer === fadingLayer) {
-      event.currentTarget.pause();
-      setFadingLayer(null);
-    }
-  };
+    videoRefs.current.forEach((video) => {
+      if (!video) return;
+      if (paused || reducedMotion) {
+        video.pause();
+        return;
+      }
+      video.playbackRate = 0.6;
+      const playPromise = video.play();
+      if (playPromise) {
+        playPromise.catch((error) => {
+          if (error.name !== "AbortError") {
+            console.error("Transition video preview failed to play.", error);
+          }
+        });
+      }
+    });
+  }, [paused, reducedMotion]);
 
   return (
-    <div
-      className="hero-product hero-video-preview glass-card"
-    >
-      <span className="product-topline hero-video-preview-meta">
-        <span>UP NEXT</span>
-        <span className="live-dot">VIDEO {String(videoIndex + 1).padStart(2, "0")}</span>
-      </span>
-      <div className="hero-video-preview-visual">
-        {[0, 1].map((layer) => (
-          <video
-            key={layer}
-            ref={(element) => { videoRefs.current[layer] = element; }}
-            className={`hero-video-preview-media${activeLayer === layer ? " is-active" : ""}${fadingLayer === layer ? " is-fading-out" : ""}`}
-            muted
-            loop
-            playsInline
-            preload="auto"
-            aria-hidden="true"
-            tabIndex={-1}
-            onTransitionEnd={(event) => handleFadeComplete(event, layer)}
-          />
+    <div className="transition-image transition-video-gallery">
+      <div className="transition-preview-track" role="group" aria-label="Home video previews">
+        {heroVideos.map((item, index) => (
+          <button
+            key={item.src}
+            className={`transition-preview-tile${videoIndex === index ? " is-active" : ""}`}
+            type="button"
+            aria-label={`Show ${item.label}`}
+            aria-pressed={videoIndex === index}
+            onClick={() => onSelect(index)}
+          >
+            <video
+              ref={(element) => { videoRefs.current[index] = element; }}
+              src={item.src}
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-hidden="true"
+              onError={() => console.error(`Transition video preview failed to load: ${item.src}`)}
+            />
+          </button>
         ))}
       </div>
-      <span className="hero-video-preview-footer">
-        <span className="hero-video-preview-label">{video.label}</span>
-        <span className="hero-video-preview-count">{String(videoIndex + 1).padStart(2, "0")} / {String(heroVideos.length).padStart(2, "0")}</span>
-      </span>
-      <div className="featured-controls hero-video-controls" role="group" aria-label="Hero video controls">
-        <button
-          className="featured-control"
-          type="button"
-          aria-label="Previous hero video"
-          onClick={() => onSelect((videoIndex - 1 + heroVideos.length) % heroVideos.length)}
-        >
-          ←
-        </button>
-        <div className="featured-dots">
-          {heroVideos.map((item, index) => (
-            <button
-              key={item.src}
-              className="featured-dot"
-              type="button"
-              aria-label={`Play ${item.label}`}
-              aria-pressed={videoIndex === index}
-              onClick={() => onSelect(index)}
-            />
-          ))}
-        </div>
-        <button
-          className="featured-autoplay"
-          type="button"
-          aria-label={paused ? "Resume hero video sequence" : "Pause hero video sequence"}
-          aria-pressed={!paused}
-          title={paused ? "Resume video sequence" : "Pause video sequence"}
-          disabled={reducedMotion}
-          onClick={onTogglePaused}
-        >
-          {paused || reducedMotion ? "▶" : "Ⅱ"}
-        </button>
-        <span className="featured-slide-count">{String(videoIndex + 1).padStart(2, "0")} / {String(heroVideos.length).padStart(2, "0")}</span>
-        <button
-          className="featured-control"
-          type="button"
-          aria-label="Next hero video"
-          onClick={() => onSelect((videoIndex + 1) % heroVideos.length)}
-        >
-          →
-        </button>
-      </div>
+      <button
+        className="transition-video-toggle"
+        type="button"
+        aria-label={paused ? "Resume hero video sequence" : "Pause hero video sequence"}
+        aria-pressed={!paused}
+        title={paused ? "Resume video sequence" : "Pause video sequence"}
+        disabled={reducedMotion}
+        onClick={onTogglePaused}
+      >
+        {paused || reducedMotion ? "▶" : "Ⅱ"}
+      </button>
     </div>
   );
 }
@@ -470,7 +381,6 @@ function useScrollEffects(reducedMotion, pageRef, pageKey) {
     let carouselObserver;
     let carouselEventController;
     let carouselVisible = !("IntersectionObserver" in window);
-    let carouselHovered = false;
     let carouselFocused = false;
     let carouselManuallyPaused = reducedMotion;
     let activeFeatureIndex = 0;
@@ -485,24 +395,24 @@ function useScrollEffects(reducedMotion, pageRef, pageKey) {
       function updateFeatureCarousel() {
         const compactLayout = window.matchMedia("(max-width: 760px)").matches;
         const narrowLayout = window.matchMedia("(max-width: 520px)").matches;
-        const visibleOffset = compactLayout ? 1 : 3;
-        const slideWidth = narrowLayout
-          ? 130
-          : compactLayout
-            ? Math.min(170, Math.max(122, window.innerWidth * 0.35))
-            : Math.min(178, Math.max(118, window.innerWidth * 0.12));
+        const visibleOffset = compactLayout ? 1 : 2;
         const slideGap = compactLayout
-          ? 8
-          : Math.min(26, Math.max(16, window.innerWidth * 0.018));
+          ? 12
+          : Math.min(28, Math.max(18, window.innerWidth * 0.02));
+        const galleryWidth = Math.min(1600, window.innerWidth);
+        const slideWidth = compactLayout
+          ? Math.min(150, Math.max(112, window.innerWidth * 0.33))
+          : Math.min(360, (galleryWidth - slideGap * 4) / 5);
         featureSlides.forEach((slide, index) => {
           const relativeIndex = (index - activeFeatureIndex + featureSlides.length) % featureSlides.length;
           const offset = relativeIndex > featureSlides.length / 2
             ? relativeIndex - featureSlides.length
             : relativeIndex;
           const distance = Math.abs(offset);
+          slide.style.setProperty("--carousel-width", `${slideWidth}px`);
           slide.style.setProperty("--carousel-x", `${offset * (slideWidth + slideGap)}px`);
-          slide.style.setProperty("--carousel-angle", `${offset * -12}deg`);
-          slide.style.setProperty("--carousel-scale", distance === 0 ? "1.04" : distance === 1 ? "0.9" : "0.76");
+          slide.style.setProperty("--carousel-angle", "0deg");
+          slide.style.setProperty("--carousel-scale", distance === 0 ? "1.18" : distance === 1 ? "0.9" : "0.82");
           slide.style.setProperty("--carousel-depth", String(featureSlides.length - distance));
           slide.dataset.carouselPosition = distance === 0 ? "active" : distance <= visibleOffset ? "near" : "hidden";
           slide.setAttribute("aria-hidden", String(distance > visibleOffset));
@@ -511,7 +421,7 @@ function useScrollEffects(reducedMotion, pageRef, pageKey) {
       }
 
       function syncCarouselTimer() {
-        const shouldPlay = carouselVisible && !carouselHovered && !carouselFocused && !carouselManuallyPaused && !document.hidden;
+        const shouldPlay = carouselVisible && !carouselFocused && !carouselManuallyPaused && !document.hidden;
         if (shouldPlay && !carouselTimer) {
           carouselTimer = window.setInterval(() => {
             activeFeatureIndex = (activeFeatureIndex + 1) % featureSlides.length;
@@ -547,14 +457,6 @@ function useScrollEffects(reducedMotion, pageRef, pageKey) {
         updateFeatureCarousel();
       }
 
-      const handleCarouselMouseEnter = () => {
-        carouselHovered = true;
-        syncCarouselTimer();
-      };
-      const handleCarouselMouseLeave = () => {
-        carouselHovered = false;
-        syncCarouselTimer();
-      };
       const handleCarouselFocusIn = () => {
         carouselFocused = true;
         syncCarouselTimer();
@@ -573,8 +475,6 @@ function useScrollEffects(reducedMotion, pageRef, pageKey) {
       previousButton?.addEventListener("click", showPreviousFeature, listenerOptions);
       nextButton?.addEventListener("click", showNextFeature, listenerOptions);
       toggleButton?.addEventListener("click", handleToggleCarousel, listenerOptions);
-      featureCarousel.addEventListener("mouseenter", handleCarouselMouseEnter, listenerOptions);
-      featureCarousel.addEventListener("mouseleave", handleCarouselMouseLeave, listenerOptions);
       featureCarousel.addEventListener("focusin", handleCarouselFocusIn, listenerOptions);
       featureCarousel.addEventListener("focusout", handleCarouselFocusOut, listenerOptions);
       document.addEventListener("visibilitychange", handleCarouselVisibility, listenerOptions);
@@ -1167,6 +1067,8 @@ function SiteMarkup({
       }
 
       if (["a", "button"].includes(node.name) && (node.attribs.class || "").split(/\s+/).includes("cart-button")) {
+        if (cartCount === 0) return <></>;
+
         return (
           <button
             className={node.attribs.class}
@@ -1212,11 +1114,10 @@ function SiteMarkup({
         );
       }
 
-      if (page === "home" && node.name === "div" && classes.split(/\s+/).includes("hero-product")) {
-        const nextVideoIndex = (heroVideoIndex + 1) % heroVideos.length;
+      if (page === "home" && node.name === "div" && classes.split(/\s+/).includes("transition-image")) {
         return (
-          <HeroVideoPreview
-            videoIndex={nextVideoIndex}
+          <TransitionVideoGallery
+            videoIndex={heroVideoIndex}
             onSelect={onHeroVideoChange}
             paused={heroVideoPaused}
             onTogglePaused={onHeroVideoTogglePaused}
