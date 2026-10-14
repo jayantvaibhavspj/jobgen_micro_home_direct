@@ -2090,24 +2090,19 @@ main.route-page-enter { animation:route-page-enter .42s ease-out both; }
   color:rgba(255,255,255,.92);
 }
 .site-footer .footer-panel .footer-bottom > .footer-powered {
-  display:inline-flex;
-  align-items:center;
-  gap:7px;
+  display:inline-block;
   margin-left:auto;
-  padding:10px 15px;
-  border:1px solid rgba(243,152,112,.4);
-  border-radius:999px;
-  background:rgba(243,152,112,.1);
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
   color:#ffc0a3;
-  font-size:13px;
-  font-weight:600;
+  font-size:11px;
+  font-weight:500;
   line-height:1.2;
-  transition:background .2s ease,border-color .2s ease,transform .2s ease;
+  transition:color .2s ease;
 }
 .site-footer .footer-panel .footer-bottom > .footer-powered:hover {
-  transform:translateY(-2px);
-  border-color:rgba(243,152,112,.72);
-  background:rgba(243,152,112,.18);
   color:#ffd2bf;
 }
 @media(max-width:900px) {
