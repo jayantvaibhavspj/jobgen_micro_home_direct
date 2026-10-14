@@ -9,6 +9,11 @@ npm install
 npm run dev
 ```
 
+## Navigation
+
+The main menu is displayed in the top navigation bar on desktop and mobile. On
+small screens, the navigation links can be scrolled horizontally.
+
 ## Production build
 
 ```sh
