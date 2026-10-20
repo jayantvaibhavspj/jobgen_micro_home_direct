@@ -1,3 +1,5 @@
+import { translateMarkup } from "./i18n/markupTranslator.js";
+import { dictionary } from "./i18n/translations.js";
 import { Children, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import parse, { attributesToProps, domToReact } from "html-react-parser";
@@ -19,8 +21,28 @@ import officePodVideo from "../assets/Modular_pod_office_in_courtyard_2026101221
 import capsulePodVideo from "../assets/Capsule_pod_house_exterior_panning_20261012215023_gwr_video_mvp.mp4";
 import gardenHomeVideo from "../assets/Prefabricated_tiny_house_in_garden_20261012215030.mp4";
 import "../styles.css";
+import {
+  getStoredLanguage,
+  setStoredLanguage,
+  toggleLanguage,
+  applyLanguage,
+  initLanguageObserver,
+  getCurrentLanguage,
+  subscribeLanguage,
+  translateText
+} from "./i18n/translator.js";
 
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
+
+const categoryNamesZh = {
+  "pods": "后院与办公太空舱",
+  "high-ceiling": "高挑顶微型房屋",
+  "container-homes": "双翼拓展集装箱房",
+  "toilets": "移动卫浴与洗手间舱",
+  "shipping-containers": "集装箱储物房",
+  "trailers-accessories": "拖车底盘与配件"
+};
+
 const pagePaths = {
   home: "/",
   shop: "/shop",
@@ -632,9 +654,12 @@ function loadCartItems() {
   }
 }
 
-function ProductDetail({ product, onAddToCart }) {
+function ProductDetail({ product, onAddToCart, currentLang }) {
+  const isZh = currentLang === "zh";
   const [activeImage, setActiveImage] = useState(0);
   const category = shopCatalog.categories.find(({ slug }) => slug === product.category);
+  const catLabel = isZh ? (categoryNamesZh[product.category] || category?.label) : (category?.label || "Products");
+  const prodName = isZh ? (dictionary[product.name] || product.name) : product.name;
   const gallery = product.gallery?.length
     ? product.gallery
     : [product.image || category?.image].filter(Boolean);
@@ -645,16 +670,16 @@ function ProductDetail({ product, onAddToCart }) {
   return (
     <div className="product-detail-page">
       <nav className="product-breadcrumb" aria-label="Breadcrumb">
-        <Link to="/">Home</Link><span aria-hidden="true">/</span>
-        <Link to="/shop">Shop</Link><span aria-hidden="true">/</span>
-        <Link to={`/shop?category=${encodeURIComponent(product.category)}`}>{category?.label || "Products"}</Link>
-        <span aria-hidden="true">/</span><span aria-current="page">{product.name}</span>
+        <Link to="/">{isZh ? "首页" : "Home"}</Link><span aria-hidden="true">/</span>
+        <Link to="/shop">{isZh ? "商城" : "Shop"}</Link><span aria-hidden="true">/</span>
+        <Link to={`/shop?category=${encodeURIComponent(product.category)}`}>{catLabel}</Link>
+        <span aria-hidden="true">/</span><span aria-current="page">{prodName}</span>
       </nav>
 
       <section className="product-detail-hero">
         <div className="product-detail-gallery">
           <div className="product-detail-main-image">
-            {gallery[activeImage] && <img src={gallery[activeImage]} alt={product.name} fetchPriority="high" />}
+            {gallery[activeImage] && <img src={gallery[activeImage]} alt={prodName} fetchPriority="high" />}
           </div>
           {gallery.length > 1 && (
             <div className="product-detail-thumbnails" aria-label="Product images">
@@ -675,20 +700,20 @@ function ProductDetail({ product, onAddToCart }) {
         </div>
 
         <div className="product-detail-summary">
-          <p className="eyebrow"><Link to={`/shop?category=${encodeURIComponent(product.category)}`}>{category?.label || "Micro Homes Direct"}</Link></p>
-          <h1>{product.name}</h1>
-          <p className="product-detail-price">{product.price}<span>AUD · Listed price</span></p>
-          <p className="product-detail-description">{product.description || "Contact our team for product specifications, current availability and delivery information."}</p>
+          <p className="eyebrow"><Link to={`/shop?category=${encodeURIComponent(product.category)}`}>{catLabel}</Link></p>
+          <h1>{prodName}</h1>
+          <p className="product-detail-price">{product.price}<span>{isZh ? "AUD · 标示价格" : "AUD · Listed price"}</span></p>
+          <p className="product-detail-description">{isZh ? (dictionary[product.description] || product.description) : (product.description || "Contact our team for product specifications, current availability and delivery information.")}</p>
           <div className="product-detail-actions">
             <button className="cart-add-button cart-add-button--detail" type="button" onClick={() => onAddToCart(product.slug)}>
-              Add to cart
+              {isZh ? "加入购物车" : "Add to cart"}
             </button>
             <button className="button quote-open" type="button" data-interest={product.name}>
-              Enquire about this product <span className="button-icon">↗</span>
+              {isZh ? "咨询此产品" : "Enquire about this product"} <span className="button-icon">↗</span>
             </button>
-            <a className="product-detail-phone" href="tel:1300229166">Call 1300 229 166</a>
+            <a className="product-detail-phone" href="tel:1300229166">{isZh ? "拨打电话 1300 229 166" : "Call 1300 229 166"}</a>
           </div>
-          <p className="product-detail-disclaimer">Prices and availability may change. Confirm final details with our team before ordering.</p>
+          <p className="product-detail-disclaimer">{isZh ? "价格和在售情况可能发生变动。下单前请与团队确认具体细节。" : "Prices and availability may change. Confirm final details with our team before ordering."}</p>
         </div>
       </section>
 
@@ -817,7 +842,8 @@ function ProductDetailRoute({
   );
 }
 
-function ShopCatalog({ onAddToCart }) {
+function ShopCatalog({ onAddToCart, currentLang }) {
+  const isZh = currentLang === "zh";
   const [searchParams, setSearchParams] = useSearchParams();
   const queryCategory = searchParams.get("category");
   const [activeCategory, setActiveCategory] = useState(() => (
@@ -846,11 +872,11 @@ function ShopCatalog({ onAddToCart }) {
     <section className="shop-catalog section-pad" id="models" aria-label="Shop products and categories">
       <div className="shop-category-picker" id="shop-product-catalog">
         <div className="shop-category-heading">
-          <p className="eyebrow">FIND YOUR FIT</p>
-          <h2>Space that fits <em>your next chapter.</em></h2>
-          <p>From focused workspaces to flexible living and storage, explore the range and ask us about the details that matter to your plans.</p>
+          <p className="eyebrow">{isZh ? "寻找您的理想空间" : "FIND YOUR FIT"}</p>
+          <h2>{isZh ? <>契合您崭新生活篇章的<em>理想空间。</em></> : <>Space that fits <em>your next chapter.</em></>}</h2>
+          <p>{isZh ? "从专注工作空间到灵活起居与仓储，探索全系产品并向我们咨询切合您规划的各项细节。" : "From focused workspaces to flexible living and storage, explore the range and ask us about the details that matter to your plans."}</p>
         </div>
-        <p className="eyebrow">SHOP BY CATEGORY</p>
+        <p className="eyebrow">{isZh ? "按类别选购" : "SHOP BY CATEGORY"}</p>
         <div className="shop-category-grid" role="group" aria-label="Product categories">
           {shopCatalog.categories.map((category) => (
             <button
@@ -864,8 +890,8 @@ function ShopCatalog({ onAddToCart }) {
                 <img src={category.image} alt="" loading="lazy" />
               </span>
               <span className="shop-category-details">
-                <span>{category.label}</span>
-                <small>{category.count} products</small>
+                <span>{isZh ? (categoryNamesZh[category.slug] || category.label) : category.label}</span>
+                <small>{category.count} {isZh ? "款产品" : "products"}</small>
               </span>
               <span className="shop-category-arrow" aria-hidden="true">↗</span>
             </button>
@@ -877,18 +903,18 @@ function ShopCatalog({ onAddToCart }) {
           aria-pressed={activeCategory === "all"}
           onClick={() => selectCategory("all")}
         >
-          View all {shopCatalog.products.length} products <span aria-hidden="true">↗</span>
+          {isZh ? `查看全部 ${shopCatalog.products.length} 款产品` : `View all ${shopCatalog.products.length} products`} <span aria-hidden="true">↗</span>
         </button>
       </div>
 
       <div className="shop-products" id="shop-products">
         <div className="shop-products-heading">
           <div>
-            <p className="eyebrow">{activeCategoryInfo ? activeCategoryInfo.label : "THE FULL COLLECTION"}</p>
-            <h2>{activeCategoryInfo ? activeCategoryInfo.label : "All products"}</h2>
+            <p className="eyebrow">{activeCategoryInfo ? (isZh ? (categoryNamesZh[activeCategoryInfo.slug] || activeCategoryInfo.label) : activeCategoryInfo.label) : (isZh ? "完整产品系列" : "THE FULL COLLECTION")}</p>
+            <h2>{activeCategoryInfo ? (isZh ? (categoryNamesZh[activeCategoryInfo.slug] || activeCategoryInfo.label) : activeCategoryInfo.label) : (isZh ? "全部产品" : "All products")}</h2>
           </div>
           <p className="shop-results-count" aria-live="polite">
-            {visibleProducts.length} {visibleProducts.length === 1 ? "product" : "products"}
+            {isZh ? `${visibleProducts.length} 款产品` : `${visibleProducts.length} ${visibleProducts.length === 1 ? "product" : "products"}`}
           </p>
         </div>
         {activeCategoryInfo && (
@@ -915,7 +941,7 @@ function ShopCatalog({ onAddToCart }) {
                   <span>AUD</span>
                 </div>
                 <button className="cart-add-button" type="button" onClick={() => onAddToCart(product.slug)}>
-                  Add to cart
+                  {isZh ? "加入购物车" : "Add to cart"}
                 </button>
               </div>
             </article>
@@ -929,7 +955,8 @@ function ShopCatalog({ onAddToCart }) {
   );
 }
 
-function CartDrawer({ items, onClose, onQuantityChange, onRemove }) {
+function CartDrawer({ items, onClose, onQuantityChange, onRemove, currentLang }) {
+  const isZh = currentLang === "zh";
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -962,15 +989,15 @@ function CartDrawer({ items, onClose, onQuantityChange, onRemove }) {
       <aside className="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title">
         <div className="cart-drawer-heading">
           <div>
-            <p className="eyebrow">YOUR SELECTION</p>
-            <h2 id="cart-title">Shopping cart <span>({itemCount})</span></h2>
+            <p className="eyebrow">{isZh ? "您的选购" : "YOUR SELECTION"}</p>
+            <h2 id="cart-title">{isZh ? "购物车" : "Shopping cart"} <span>({itemCount})</span></h2>
           </div>
           <button className="cart-close" type="button" aria-label="Close cart" onClick={onClose}>×</button>
         </div>
         {cartProducts.length === 0 ? (
           <div className="cart-empty">
-            <p>Your cart is empty.</p>
-            <button className="cart-continue-button" type="button" onClick={onClose}>Continue shopping</button>
+            <p>{isZh ? "您的购物车是空的。" : "Your cart is empty."}</p>
+            <button className="cart-continue-button" type="button" onClick={onClose}>{isZh ? "继续选购" : "Continue shopping"}</button>
           </div>
         ) : (
           <>
@@ -989,21 +1016,67 @@ function CartDrawer({ items, onClose, onQuantityChange, onRemove }) {
                         <span>{quantity}</span>
                         <button type="button" aria-label={`Increase quantity of ${product.name}`} onClick={() => onQuantityChange(product.slug, quantity + 1)}>+</button>
                       </div>
-                      <button className="cart-remove" type="button" onClick={() => onRemove(product.slug)}>Remove</button>
+                      <button className="cart-remove" type="button" onClick={() => onRemove(product.slug)}>{isZh ? "移除" : "Remove"}</button>
                     </div>
                   </div>
                 </article>
               ))}
             </div>
             <div className="cart-drawer-footer">
-              <div className="cart-subtotal"><span>Listed subtotal</span><strong>${subtotal.toLocaleString("en-AU", { maximumFractionDigits: 2 })} AUD</strong></div>
-              <p>Delivery and final pricing are confirmed with our team before ordering.</p>
-              <Link className="button cart-contact-button" to="/contact" onClick={onClose}>Contact us about your cart <span className="button-icon">↗</span></Link>
-              <button className="cart-continue-button" type="button" onClick={onClose}>Continue shopping</button>
+              <div className="cart-subtotal"><span>{isZh ? "商品小计" : "Listed subtotal"}</span><strong>${subtotal.toLocaleString("en-AU", { maximumFractionDigits: 2 })} AUD</strong></div>
+              <p>{isZh ? "配送费和最终价格将在下单前由团队为您确认。" : "Delivery and final pricing are confirmed with our team before ordering."}</p>
+              <Link className="button cart-contact-button" to="/contact" onClick={onClose}>{isZh ? "联系团队咨询购物车" : "Contact us about your cart"} <span className="button-icon">↗</span></Link>
+              <button className="cart-continue-button" type="button" onClick={onClose}>{isZh ? "继续选购" : "Continue shopping"}</button>
             </div>
           </>
         )}
       </aside>
+    </div>
+  );
+}
+
+
+function LanguageSegmentedSwitch({ currentLang, onChangeLanguage, id, className = "" }) {
+  const isZh = currentLang === "zh";
+
+  return (
+    <div
+      className={`lang-segmented-switch ${isZh ? "is-zh" : "is-en"} ${className}`}
+      id={id}
+      role="group"
+      aria-label="Language selection"
+    >
+      <div
+        className="lang-switch-track"
+        onClick={() => onChangeLanguage(isZh ? "en" : "zh")}
+        title={isZh ? "Switch to English / 切换为英文" : "Switch to Chinese / 切换为中文"}
+      >
+        <span className="lang-switch-slider" aria-hidden="true" />
+        <button
+          type="button"
+          className={`lang-switch-btn lang-switch-en ${!isZh ? "is-active" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onChangeLanguage("en");
+          }}
+          aria-pressed={!isZh}
+          aria-label="English"
+        >
+          EN
+        </button>
+        <button
+          type="button"
+          className={`lang-switch-btn lang-switch-zh ${isZh ? "is-active" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onChangeLanguage("zh");
+          }}
+          aria-pressed={isZh}
+          aria-label="中文 (Chinese)"
+        >
+          中文
+        </button>
+      </div>
     </div>
   );
 }
@@ -1038,7 +1111,9 @@ function SiteMarkup({
   quoteModel,
   onQuoteModelChange,
   enquiryNote,
-  searchNote
+  searchNote,
+  currentLang,
+  onToggleLanguage
 }) {
   const options = useMemo(() => ({
     replace(node) {
@@ -1046,7 +1121,9 @@ function SiteMarkup({
 
       const props = attributesToProps(node.attribs);
       if (node.name === "div" && node.attribs.id === "route-page-content") {
-        return <>{parse(pageMarkups[page], options)}</>;
+        const rawPage = pageMarkups[page] || "";
+        const effectivePage = currentLang === "zh" ? translateMarkup(rawPage, "zh") : rawPage;
+        return <>{parse(effectivePage, options)}</>;
       }
       if (node.name === "div" && node.attribs.id === "search-background") {
         return <SearchBackdrop index={searchBackgroundIndex} previousIndex={previousSearchBackgroundIndex} />;
@@ -1055,13 +1132,28 @@ function SiteMarkup({
         return <SearchBackdrop index={searchBackgroundIndex} previousIndex={previousSearchBackgroundIndex} className="search-backdrop faq-backdrop" />;
       }
       if (node.name === "div" && node.attribs.id === "shop-product-catalog") {
-        return <ShopCatalog onAddToCart={onAddToCart} />;
+        return <ShopCatalog onAddToCart={onAddToCart} currentLang={currentLang} />;
       }
       if (node.name === "div" && node.attribs.id === "finance-calculator-embed") {
         return <FinanceCalculatorFrame />;
       }
       if (node.name === "div" && node.attribs.id === "product-detail-mount") {
-        return <ProductDetail product={product} onAddToCart={onAddToCart} />;
+        return <ProductDetail product={product} onAddToCart={onAddToCart} currentLang={currentLang} />;
+      }
+
+      if (
+        (node.name === "div" || node.name === "button") &&
+        ((node.attribs.class || "").split(/\s+/).includes("lang-segmented-switch") ||
+         (node.attribs.class || "").split(/\s+/).includes("lang-toggle-button"))
+      ) {
+        return (
+          <LanguageSegmentedSwitch
+            currentLang={currentLang}
+            onChangeLanguage={(targetLang) => onToggleLanguage(targetLang)}
+            id={props.id}
+            className={props.className}
+          />
+        );
       }
 
       if (["a", "button"].includes(node.name) && (node.attribs.class || "").split(/\s+/).includes("cart-button")) {
@@ -1176,20 +1268,22 @@ function SiteMarkup({
       }
 
       if (node.name === "h2" && node.attribs.id === "hero-feature-name") {
-        return <h2 {...props}>{featuredModels[featuredIndex].name}</h2>;
+        const name = featuredModels[featuredIndex].name;
+        return <h2 {...props}>{currentLang === "zh" ? (dictionary[name] || name) : name}</h2>;
       }
 
       if (node.name === "p" && node.attribs.id === "hero-eyebrow") {
-        return <p {...props}>FLEXIBLE SPACES · MADE FOR REAL LIFE</p>;
+        return <p {...props}>{currentLang === "zh" ? "灵活微居空间 · 专为美好生活打造" : "FLEXIBLE SPACES · MADE FOR REAL LIFE"}</p>;
       }
 
       if (node.name === "a" && node.attribs.id === "hero-explore-link") {
         const { href, ...linkProps } = props;
-        return <Link {...linkProps} to={href}>Explore our range<span className="button-icon">↗</span></Link>;
+        return <Link {...linkProps} to={href}>{currentLang === "zh" ? "探索所有系列" : "Explore our range"}<span className="button-icon">↗</span></Link>;
       }
 
       if (node.name === "span" && node.attribs.id === "hero-feature-category") {
-        return <span {...props}>{featuredModels[featuredIndex].category}</span>;
+        const cat = featuredModels[featuredIndex].category;
+        return <span {...props}>{currentLang === "zh" ? (dictionary[cat] || cat) : cat}</span>;
       }
 
       if (node.name === "strong" && node.attribs.id === "hero-feature-price") {
@@ -1402,10 +1496,12 @@ function SiteMarkup({
     featuredIndex, onFeaturedChange, autoplayPaused, onAutoplayToggle, reducedMotion,
     quoteDialogRef, searchDialogRef,
     quoteModel, onQuoteModelChange, enquiryNote, searchNote, onQuoteOpen, onSearchOpen, onSearchNavigate,
-    searchOpen, searchBackgroundIndex, previousSearchBackgroundIndex
+    searchOpen, searchBackgroundIndex, previousSearchBackgroundIndex,
+    currentLang, onToggleLanguage
   ]);
 
-  return parse(siteShellMarkup, options);
+  const effectiveShell = currentLang === "zh" ? translateMarkup(siteShellMarkup, "zh") : siteShellMarkup;
+  return parse(effectiveShell, options);
 }
 
 const assistantProducts = [
@@ -1424,103 +1520,180 @@ function getAssistantReply(question) {
   const text = question.trim().toLowerCase().replace(/[’']/g, "");
   const has = (...terms) => terms.some((term) => text.includes(term));
   const hindi = /[\u0900-\u097f]/.test(text) || /\b(kya|ka|ki|ke|hai|hain|mujhe|batao|kitna|kaise|kahan|chahiye|dikhao)\b/.test(text);
+  const chinese = /[\u4e00-\u9fff]/.test(text) || getCurrentLanguage() === "zh";
   const product = assistantProducts.find((item) => {
     if (text.includes(item.name.toLowerCase())) return true;
-    if (item.name.startsWith("3M")) return /\b3m\b/.test(text) && has("pod", "माइक्रो", "micro");
-    if (item.name.startsWith("4M")) return /\b4m\b/.test(text) && has("office", "backyard", "ऑफिस");
-    if (item.name.startsWith("6M Micro")) return /\b6m\b/.test(text) && has("pod", "पॉड", "माइक्रो", "micro") && !has("office", "backyard");
-    if (item.name.startsWith("6M 20FT")) return /\b6m\b/.test(text) && has("office", "backyard", "ऑफिस");
-    if (item.name.startsWith("30FT")) return /\b30\s*ft\b/.test(text) && has("container", "home", "घर");
+    if (item.name.startsWith("3M")) return (/\b3m\b/.test(text) || text.includes("3米")) && has("pod", "माइक्रो", "micro", "舱", "太空舱");
+    if (item.name.startsWith("4M")) return (/\b4m\b/.test(text) || text.includes("4米")) && has("office", "backyard", "ऑफिस", "办公");
+    if (item.name.startsWith("6M Micro")) return (/\b6m\b/.test(text) || text.includes("6米")) && has("pod", "पॉड", "माइक्रो", "micro", "舱", "太空舱") && !has("office", "backyard", "办公");
+    if (item.name.startsWith("6M 20FT")) return (/\b6m\b/.test(text) || text.includes("6米")) && has("office", "backyard", "ऑफिस", "办公");
+    if (item.name.startsWith("30FT")) return (/\b30\s*ft\b/.test(text) || text.includes("30英尺") || text.includes("双翼")) && has("container", "home", "घर", "集装箱", "拓展");
     return false;
   });
-  if (!text) return { text: "Type a question and I’ll do my best to help." };
-  if (/^(hello|hi|hey|namaste)\b/.test(text) || has("नमस्ते", "हेलो", "हाय")) {
-    return { text: hindi
-      ? "नमस्ते! 👋 मैं MHD Assistant हूँ। आप products, listed prices, showroom, finance या quote के बारे में पूछ सकते हैं।"
-      : "Hi! 👋 I’m the Micro Homes Direct assistant. Ask me about our pods, homes, listed prices, showroom, finance or getting a quote." };
+  if (!text) return { text: chinese ? "请输入您的问题，我将竭诚为您解答。" : "Type a question and I’ll do my best to help." };
+  if (/^(hello|hi|hey|namaste|你好|您好)\b/.test(text) || has("नमस्ते", "हेलो", "हाय", "你好", "您好", "早上好", "下午好")) {
+    return { text: chinese
+      ? "您好！👋 我是 Micro Homes Direct 智能助手。随时问我关于太空舱、微型房屋、在售价格、展厅、金融分期或报价的问题。"
+      : hindi
+        ? "नमस्ते! 👋 मैं MHD Assistant हूँ। आप products, listed prices, showroom, finance या quote के बारे में पूछ सकते हैं।"
+        : "Hi! 👋 I’m the Micro Homes Direct assistant. Ask me about our pods, homes, listed prices, showroom, finance or getting a quote." };
   }
-  if (has("thank", "thanks", "धन्यवाद", "शुक्रिया")) {
-    return { text: "You’re welcome! 😊 Anything else you’d like to know about Micro Homes Direct?" };
+  if (has("thank", "thanks", "धन्यवाद", "शुक्रिया", "谢谢", "多谢", "感谢")) {
+    return { text: chinese
+      ? "不客气！😊 关于 Micro Homes Direct，还有什么我可以帮您的吗？"
+      : "You’re welcome! 😊 Anything else you’d like to know about Micro Homes Direct?" };
   }
-  if (has("bye", "goodbye", "see you", "अलविदा")) {
-    return { text: "Thanks for stopping by. Have a lovely day! If you need a hand later, I’ll be here." };
+  if (has("bye", "goodbye", "see you", "अलविदा", "再见", "拜拜")) {
+    return { text: chinese
+      ? "感谢您的光临，祝您度过愉快的一天！如果之后需要帮助，我一直在这里。"
+      : "Thanks for stopping by. Have a lovely day! If you need a hand later, I’ll be here." };
   }
-  if (has("who are you", "your name", "bot name", "tum kaun", "aap kaun")) {
-    return { text: hindi
-      ? "मैं MHD Assistant हूँ—Micro Homes Direct की website का helper. मैं products explore करने और सही जानकारी ढूँढने में मदद कर सकता हूँ।"
-      : "I’m MHD Assistant, a website helper for Micro Homes Direct. I can help you explore products and find the right next step." };
+  if (has("who are you", "your name", "bot name", "tum kaun", "aap kaun", "你是谁", "你的名字", "叫什么")) {
+    return { text: chinese
+      ? "我是 MHD 智能助手——Micro Homes Direct 官方网站的专属顾问帮手。我可以帮您了解各类太空舱、微型房产品并解答疑问。"
+      : hindi
+        ? "मैं MHD Assistant हूँ—Micro Homes Direct की website का helper. मैं products explore करने और सही जानकारी ढूँढने में मदद कर सकता हूँ।"
+        : "I’m MHD Assistant, a website helper for Micro Homes Direct. I can help you explore products and find the right next step." };
   }
-  if (has("delivery", "deliver", "shipping", "transport", "when arrive", "डिलीवरी", "kab aayega", "kab milega", "freight", "postcode", "post code")) {
-    return { text: hindi
-      ? "Delivery का समय और cost model, stock, configuration और आपके location पर निर्भर करते हैं। अपना postcode और model बताकर team से current estimate लें।"
-      : "Delivery timing and cost vary by model, stock status, configuration and destination. Contact the team with your postcode and chosen model for a current estimate.",
-    action: { label: "Ask about delivery", href: "#contact" } };
+  if (has("delivery", "deliver", "shipping", "transport", "when arrive", "डिलीवरी", "kab aayega", "kab milega", "freight", "postcode", "post code", "送货", "配送", "运输", "多久到", "运费")) {
+    return { text: chinese
+      ? "配送交付时间与运费取决于产品型号、库存状态、选装配置以及您的送达地址。欢迎提供您的邮政编码及所选型号，团队将为您提供最新预估。"
+      : hindi
+        ? "Delivery का समय और cost model, stock, configuration और आपके location पर निर्भर करते हैं। अपना postcode और model बताकर team से current estimate लें।"
+        : "Delivery timing and cost vary by model, stock status, configuration and destination. Contact the team with your postcode and chosen model for a current estimate.",
+    action: { label: chinese ? "咨询配送详情" : "Ask about delivery", href: "#contact" } };
   }
   if (product) {
     const pricing = product.price
-      ? hindi
-        ? ` Website पर इसकी listed price ${product.price}${product.oldPrice ? ` (पहले ${product.oldPrice})` : ""} है।`
-        : ` The website currently lists it at ${product.price}${product.oldPrice ? ` (previously ${product.oldPrice})` : ""}.`
-      : hindi
-        ? " यहाँ इसकी price listed नहीं है; current price और options के लिए team से पूछें।"
-        : " A price isn’t listed here, so please ask the team for current pricing and options.";
+      ? chinese
+        ? ` 网站当前标价为 ${product.price}${product.oldPrice ? ` (原价 ${product.oldPrice})` : ""}。`
+        : hindi
+          ? ` Website पर इसकी listed price ${product.price}${product.oldPrice ? ` (पहले ${product.oldPrice})` : ""} है।`
+          : ` The website currently lists it at ${product.price}${product.oldPrice ? ` (previously ${product.oldPrice})` : ""}.`
+      : chinese
+        ? " 此处未公开标价，请向团队咨询最新在售价格与选配方案。"
+        : hindi
+          ? " यहाँ इसकी price listed नहीं है; current price और options के लिए team से पूछें।"
+          : " A price isn’t listed here, so please ask the team for current pricing and options.";
     return {
-      text: hindi
-        ? `${product.name} हमारी ${product.category} range में दिखाया गया है।${pricing} Price और availability team से confirm करें।`
-        : `${product.name} is shown in our ${product.category} range.${pricing} Prices and availability can change; confirm the latest details with our team.`,
-      action: { label: "View product range", href: "/shop#models" }
+      text: chinese
+        ? `${product.name} 展示在我们的 ${product.category} 系列中。${pricing} 价格与现货库存可能变动，请向团队确认最新信息。`
+        : hindi
+          ? `${product.name} हमारी ${product.category} range में दिखाया गया है।${pricing} Price और availability team से confirm करें।`
+          : `${product.name} is shown in our ${product.category} range.${pricing} Prices and availability can change; confirm the latest details with our team.`,
+      action: { label: chinese ? "查看产品系列" : "View product range", href: "/shop#models" }
     };
   }
-  if (has("price", "cost", "kitna", "कीमत", "दाम", "rate")) {
+  if (has("price", "cost", "kitna", "कीमत", "दाम", "rate", "多少钱", "价格", "造价", "费用", "多少")) {
     const prices = assistantProducts.filter((item) => item.price)
       .map((item) => `${item.name}: ${item.price}${item.oldPrice ? ` (was ${item.oldPrice})` : ""}.`)
       .join(" ");
-    return { text: hindi
-      ? `Website पर listed prices: ${prices} ये indicative prices हैं—latest जानकारी team से confirm करें।`
-      : `The website lists these prices: ${prices} They’re indicative and should be confirmed with the team.`,
-    action: { label: "Browse products", href: "/shop#models" } };
+    return { text: chinese
+      ? `网站当前参考标价：${prices} 这些价格仅供参考，请向销售团队确认最新优惠与现货价格。`
+      : hindi
+        ? `Website पर listed prices: ${prices} ये indicative prices हैं—latest जानकारी team से confirm करें।`
+        : `The website lists these prices: ${prices} They’re indicative and should be confirmed with the team.`,
+    action: { label: chinese ? "浏览全部产品" : "Browse products", href: "/shop#models" } };
   }
-  if (has("compare", "comparison", "difference", "versus", " vs ", "better", "best", "kaunsa", "कौन सा")) {
-    return { text: "The best choice depends on how you’ll use the space, the size you need and your site. The catalogue shows product descriptions and listed prices; tell me which two models you’re comparing and I can share the listed details. For exact specifications, ask our team.", action: { label: "Compare in catalogue", href: "/shop#models" } };
+  if (has("compare", "comparison", "difference", "versus", " vs ", "better", "best", "kaunsa", "कौन सा", "对比", "区别", "哪款好")) {
+    return {
+      text: chinese
+        ? "最佳选择取决于您的具体用途、所需空间尺寸以及现场场地条件。在售型录展示了产品规格与标价，告诉我您在对比哪两款型号，我可为您提供比对信息。"
+        : "The best choice depends on how you’ll use the space, the size you need and your site. The catalogue shows product descriptions and listed prices; tell me which two models you’re comparing and I can share the listed details. For exact specifications, ask our team.",
+      action: { label: chinese ? "在型录中对比" : "Compare in catalogue", href: "/shop#models" }
+    };
   }
-  if (has("finance", "loan", "emi", "installment", "instalment", "फाइनेंस", "किस्त")) {
-    return { text: "Finance options may be available, subject to the provider’s terms, eligibility, assessment and approval. Visit our finance page for indicative information; the finance provider can confirm your options.", action: { label: "Finance information", href: "/finance" } };
+  if (has("finance", "loan", "emi", "installment", "instalment", "फाइनेंस", "किस्त", "贷款", "分期", "分期付款", "金融")) {
+    return {
+      text: chinese
+        ? "可提供金融分期方案，具体取决于金融机构条款、资质评估与审批。欢迎访问我们的金融分期页面了解参考方案。"
+        : "Finance options may be available, subject to the provider’s terms, eligibility, assessment and approval. Visit our finance page for indicative information; the finance provider can confirm your options.",
+      action: { label: chinese ? "了解金融分期" : "Finance information", href: "/finance" }
+    };
   }
-  if (has("council", "approval", "permit", "planning", "council approval", "अनुमति")) {
-    return { text: "Council and planning requirements depend on your local authority, site and intended use. Please check with your local council and qualified professionals before purchasing. Our team can share product information for your plans." };
+  if (has("council", "approval", "permit", "planning", "council approval", "अनुमति", "审批", "市政", "许可")) {
+    return {
+      text: chinese
+        ? "市政（Council）与规划审批要求取决于您当地政府、场地条件与使用规划。购买前请咨询当地市政厅及专业建筑规划人士，我们的团队可为您提供产品申报技术参数。"
+        : "Council and planning requirements depend on your local authority, site and intended use. Please check with your local council and qualified professionals before purchasing. Our team can share product information for your plans."
+    };
   }
-  if (has("custom", "customise", "customize", "layout", "finish", "colour", "color", "fit-out", "fitout", "options", "अनुकूल")) {
-    return { text: "Options, layouts and finishes depend on the selected model. Tell our team how you plan to use the space and they can confirm what’s available." };
+  if (has("custom", "customise", "customize", "layout", "finish", "colour", "color", "fit-out", "fitout", "options", "अनुकूल", "定制", "布局", "选配", "颜色")) {
+    return {
+      text: chinese
+        ? "定制选项、内部格局及材质选配取决于所选具体型号。告诉我们您的实际需求，团队将为您确认可用选装方案。"
+        : "Options, layouts and finishes depend on the selected model. Tell our team how you plan to use the space and they can confirm what’s available."
+    };
   }
-  if (has("warranty", "guarantee", "वारंटी")) {
-    return { text: "Warranty terms vary by product. Please request the current warranty information for your chosen model before placing an order." };
+  if (has("warranty", "guarantee", "वारंटी", "保修", "质保")) {
+    return {
+      text: chinese
+        ? "质保条款因产品型号而异。下单前请向销售团队索取所选型号的具体质保细则。"
+        : "Warranty terms vary by product. Please request the current warranty information for your chosen model before placing an order."
+    };
   }
-  if (has("showroom", "visit", "location", "address", "where", "दुकान", "लोकेशन")) {
-    return { text: "We have showroom/location information for Sydney, Gold Coast and Melbourne on the website. Please check the locations section for current addresses and visit details.", action: { label: "Show locations", href: "#locations" } };
+  if (has("showroom", "visit", "location", "address", "where", "दुकान", "लोकेशन", "展厅", "地址", "参观", "哪里", "地点")) {
+    return {
+      text: chinese
+        ? "我们在悉尼、黄金海岸与墨尔本设有展厅与仓储服务中心。请查看展示中心板块了解详细地址与预约参观方式。"
+        : "We have showroom/location information for Sydney, Gold Coast and Melbourne on the website. Please check the locations section for current addresses and visit details.",
+      action: { label: chinese ? "查看展示网点" : "Show locations", href: "#locations" }
+    };
   }
-  if (has("hour", "open", "opening", "close", "समय", "timing")) {
-    return { text: "Showroom hours can vary, so please check the locations section or call 1300 229 166 before visiting.", action: { label: "Show locations", href: "#locations" } };
+  if (has("hour", "open", "opening", "close", "समय", "timing", "营业时间", "开放时间", "上班时间")) {
+    return {
+      text: chinese
+        ? "展厅开放时间可能因预约而调整，参观前请查看展示中心板块或致电 1300 229 166 提前预约。"
+        : "Showroom hours can vary, so please check the locations section or call 1300 229 166 before visiting.",
+      action: { label: chinese ? "查看展示网点" : "Show locations", href: "#locations" }
+    };
   }
-  if (has("contact", "phone", "call", "email", "quote", "enquiry", "inquiry", "संपर्क", "बात")) {
-    return { text: "You can call 1300 229 166, email info@microhomesdirect.com.au, or send a quote enquiry through the website.", action: { label: "Get a quote", quote: true } };
+  if (has("contact", "phone", "call", "email", "quote", "enquiry", "inquiry", "संपर्क", "बात", "联系", "电话", "邮箱", "报价", "咨询")) {
+    return {
+      text: chinese
+        ? "您可以致电 1300 229 166，发送邮件至 info@microhomesdirect.com.au，或直接在网站提交在线报价咨询。"
+        : "You can call 1300 229 166, email info@microhomesdirect.com.au, or send a quote enquiry through the website.",
+      action: { label: chinese ? "获取报价" : "Get a quote", quote: true }
+    };
   }
-  if (has("product", "category", "catalogue", "catalog", "range", "pod", "home", "container", "bathroom", "storage", "trailer", "decking", "product kya", "क्या बेच")) {
-    return { text: "Micro Homes Direct features backyard and office pods, micro homes, expandable container homes, bathroom/toilet pods, storage and farm products, plus trailers, decking and accessories.", action: { label: "Explore products", href: "#categories" } };
+  if (has("product", "category", "catalogue", "catalog", "range", "pod", "home", "container", "bathroom", "storage", "trailer", "decking", "product kya", "क्या बेच", "产品", "买什么", "卖什么")) {
+    return {
+      text: chinese
+        ? "Micro Homes Direct 提供后院与办公太空舱、高挑顶微型房、双翼拓展集装箱房、移动卫浴、仓储仓房以及拖车露台配件等丰富系列。"
+        : "Micro Homes Direct features backyard and office pods, micro homes, expandable container homes, bathroom/toilet pods, storage and farm products, plus trailers, decking and accessories.",
+      action: { label: chinese ? "探索全部产品" : "Explore products", href: "#categories" }
+    };
   }
-  if (has("company", "about", "micro homes direct", "कंपनी", "बारे में")) {
-    return { text: "Micro Homes Direct is an Australian compact-living retailer. This website showcases modular pods, micro homes, expandable container homes and related products, with showroom information and quote enquiries." };
+  if (has("company", "about", "micro homes direct", "कंपनी", "बारे में", "公司", "介绍")) {
+    return {
+      text: chinese
+        ? "Micro Homes Direct 是一家澳大利亚领先的紧凑型微居与太空舱品牌零售商。本网站展示模块化太空舱、微型房屋、拓展集装箱房及配件，支持展厅预约与报价咨询。"
+        : "Micro Homes Direct is an Australian compact-living retailer. This website showcases modular pods, micro homes, expandable container homes and related products, with showroom information and quote enquiries."
+    };
   }
-  if (has("hello", "how are you", "kaise ho", "कैसे हो")) {
-    return { text: "I’m doing well, thanks for asking! 😊 What can I help you find today?" };
+  if (has("hello", "how are you", "kaise ho", "कैसे हो", "你好吗", "近来好吗")) {
+    return { text: chinese ? "我很好，谢谢关心！😊 今天有什么我可以协助您的吗？" : "I’m doing well, thanks for asking! 😊 What can I help you find today?" };
   }
-  return { text: "I’m not certain about that detail, and I don’t want to guess. I can help with products, listed prices, finance, delivery, council questions, warranty, showroom locations and quotes. You can also call 1300 229 166." };
+  return {
+    text: chinese
+      ? "抱歉，我还不太确定该细节，不想向您提供不确切的猜测。我可以帮您解答产品、在售标价、金融分期、配送运送、市政审批、质保及展厅预约等问题。您也可以直接致电 1300 229 166。"
+      : "I’m not certain about that detail, and I don’t want to guess. I can help with products, listed prices, finance, delivery, council questions, warranty, showroom locations and quotes. You can also call 1300 229 166."
+  };
 }
 
-function ChatAssistant({ onQuoteOpen, page }) {
+
+function ChatAssistant({ onQuoteOpen, page, currentLang }) {
+  const isZh = currentLang === "zh";
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
-  const [messages, setMessages] = useState([
-    { id: 1, from: "assistant", text: "Hello! 👋 I’m MHD Assistant. Ask me about our products, listed prices, finance or anything else on this website." }
+  const [messages, setMessages] = useState(() => [
+    {
+      id: 1,
+      from: "assistant",
+      text: isZh
+        ? "您好！👋 我是 MHD 智能助手。随时问我关于产品、在售价格、金融分期或网站上的任何信息。"
+        : "Hello! 👋 I’m MHD Assistant. Ask me about our products, listed prices, finance or anything else on this website."
+    }
   ]);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const widgetRef = useRef(null);
@@ -1680,22 +1853,30 @@ function ChatAssistant({ onQuoteOpen, page }) {
             ))}
           </div>
           <div className="chat-suggestions" aria-label="Suggested questions">
-            <button type="button" onClick={() => addSuggestedQuestion("What products do you offer?")}>Products</button>
-            <button type="button" onClick={() => addSuggestedQuestion("What are the listed prices?")}>Prices</button>
-            <button type="button" onClick={() => addSuggestedQuestion("How do I get a quote?")}>Get a quote</button>
+            <button type="button" onClick={() => addSuggestedQuestion(isZh ? "有哪些产品系列？" : "What products do you offer?")}>
+              {isZh ? "产品系列" : "Products"}
+            </button>
+            <button type="button" onClick={() => addSuggestedQuestion(isZh ? "在售价格是多少？" : "What are the listed prices?")}>
+              {isZh ? "在售价格" : "Prices"}
+            </button>
+            <button type="button" onClick={() => addSuggestedQuestion(isZh ? "如何获取报价？" : "How do I get a quote?")}>
+              {isZh ? "获取报价" : "Get a quote"}
+            </button>
           </div>
           <form className="chat-compose" onSubmit={sendMessage}>
-            <label className="sr-only" htmlFor="assistant-message">Message MHD Assistant</label>
+            <label className="sr-only" htmlFor="assistant-message">{isZh ? "向 MHD 助手发送消息" : "Message MHD Assistant"}</label>
             <input
               id="assistant-message"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Ask about products, prices..."
+              placeholder={isZh ? "询问关于产品、价格或报价…" : "Ask about products, prices..."}
               autoComplete="off"
             />
             <button type="submit" aria-label="Send message" disabled={!draft.trim()}>➤</button>
           </form>
-          <p className="chat-disclaimer">Website info only. Confirm prices and availability with our team.</p>
+          <p className="chat-disclaimer">
+            {isZh ? "仅供参考。最终价格与现货情况请与团队确认。" : "Website info only. Confirm prices and availability with our team."}
+          </p>
           <a className="chat-powered" href="https://jobgen.ai" target="_blank" rel="noopener noreferrer">
             Powered by jobgen.ai
           </a>
@@ -1718,7 +1899,7 @@ function ChatAssistant({ onQuoteOpen, page }) {
           </span>
           <span className="chat-launcher-label">
             <i aria-hidden="true" />
-            <span><strong>MHD Assistant</strong><small>Ask me anything</small></span>
+            <span><strong>MHD Assistant</strong><small>{isZh ? "随时向我提问" : "Ask me anything"}</small></span>
           </span>
           <i className="chat-launcher-status" aria-label="Assistant available" />
         </button>
@@ -1735,6 +1916,27 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
   const quoteDialogRef = useRef(null);
   const searchDialogRef = useRef(null);
   const reducedMotion = useReducedMotion();
+  const [currentLang, setCurrentLang] = useState(getStoredLanguage);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const handleToggleLanguage = useCallback((target) => {
+    const next = typeof target === "string" ? target : (currentLang === "zh" ? "en" : "zh");
+    setStoredLanguage(next);
+    applyLanguage(next);
+    setCurrentLang(next);
+  }, [currentLang]);
+
+  useEffect(() => {
+    const lang = getStoredLanguage();
+    applyLanguage(lang);
+    initLanguageObserver();
+    const unsub = subscribeLanguage(setCurrentLang);
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    applyLanguage(currentLang);
+  }, [currentLang, page, product, location.pathname]);
+
   const [activeFilter, setActiveFilter] = useState(() => {
     const category = new URLSearchParams(window.location.search).get("category");
     return featuredFilterByShopCategory[category] || "all";
@@ -1813,7 +2015,19 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
   }, [location.pathname, reducedMotion]);
 
   useEffect(() => {
-    const pageTitles = {
+    const isZh = currentLang === "zh";
+    const pageTitles = isZh ? {
+      home: "Micro Homes Direct | 澳洲微型房屋、太空舱与双翼拓展集装箱房",
+      shop: "选购微型房屋、太空舱与集装箱房 | Micro Homes Direct",
+      about: "关于我们 | Micro Homes Direct",
+      finance: "金融分期 | Micro Homes Direct",
+      contact: "联系我们 | Micro Homes Direct",
+      blog: "博客特刊 | Micro Homes Direct",
+      blogGuide: "微型房屋全成本规划指南 | Micro Homes Direct",
+      blogModularHome: "模块化与预制房屋详解 | Micro Homes Direct",
+      blogExpandableHome: "双翼拓展房规划指南 | Micro Homes Direct",
+      productDetail: `${product?.name ? translateText(product.name) : "产品详情"} | Micro Homes Direct`
+    } : {
       home: "Micro Homes Direct | Tiny Homes, Pods & Container Homes Australia",
       shop: "Shop Tiny Homes, Pods & Containers | Micro Homes Direct",
       about: "About | Micro Homes Direct",
@@ -1828,7 +2042,18 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
     document.title = pageTitles[page];
     const description = document.querySelector('meta[name="description"]');
     if (description) {
-      description.content = {
+      description.content = isZh ? {
+        home: "适用于现代生活与工作的创新型微型房屋。探索来自澳大利亚 Micro Homes Direct 的后院太空舱、微型住宅与双翼拓展集装箱房。",
+        shop: "按分类浏览 Micro Homes Direct 产品，包含太空舱、高挑顶微型房、拓展集装箱房、卫生间舱与配件实拍图与在售标价。",
+        about: "了解 Micro Homes Direct、我们精心设计的紧凑型微居空间、展示网点及多元生活方式。",
+        finance: "了解 Micro Homes Direct 购房分期信息与金融方案。",
+        contact: "联系 Micro Homes Direct 团队，咨询产品、运送、展厅地址或报价。",
+        blog: "阅读关于模块化房屋、后院太空舱与灵活小空间生活的实用灵感与原创指南。",
+        blogGuide: "澳大利亚微型房屋整体项目预算规划实用指南，涵盖运输、场地平整通水电及市政审批。",
+        blogModularHome: "详解模块化与预制房屋建造方式、专业术语含义，以及如何比对设计、规格与场地要求。",
+        blogExpandableHome: "结合您的场地条件、户型格局、运输通行、地基、公用管线与市政规范规划双翼拓展房屋。",
+        productDetail: product?.description ? translateText(product.description) : `查看 ${product?.name || "Micro Homes Direct 产品"} 的在售标价、图片及详细信息。`
+      }[page] : {
         home: "Innovative Tiny Homes for Modern Life & Work. Explore backyard pods, micro homes, container homes and flexible spaces from Micro Homes Direct, Australia.",
         shop: "Browse Micro Homes Direct products by category, with product photos and listed prices for pods, micro homes, containers, toilets and accessories.",
         about: "Learn about Micro Homes Direct, our thoughtfully designed compact spaces, locations and flexible ways to live.",
@@ -1846,7 +2071,7 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
     });
     const activeNavigationPage = page.startsWith("blog") ? "blog" : page === "productDetail" ? "shop" : page;
     document.querySelector(`.nav-pill a[data-page="${activeNavigationPage}"]`)?.setAttribute("aria-current", "page");
-  }, [page, product]);
+  }, [page, product, currentLang]);
 
   useEffect(() => {
     if (reducedMotion) setAutoplayPaused(true);
@@ -1989,6 +2214,8 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
         onQuoteModelChange={setQuoteModel}
         enquiryNote={enquiryNote}
         searchNote={searchNote}
+        currentLang={currentLang}
+        onToggleLanguage={handleToggleLanguage}
       />
       {cartOpen && (
         <CartDrawer
@@ -1996,9 +2223,10 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
           onClose={onCartClose}
           onQuantityChange={onCartQuantityChange}
           onRemove={onCartRemove}
+          currentLang={currentLang}
         />
       )}
-      <ChatAssistant onQuoteOpen={openQuote} page={page} />
+      <ChatAssistant onQuoteOpen={openQuote} page={page} currentLang={currentLang} />
     </div>
   );
 }
