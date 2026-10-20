@@ -4087,3 +4087,61 @@ main.route-page-enter { animation:route-page-enter .42s ease-out both; }
 .app-shell main > section#categories .section-heading > p:last-child {
   color:rgba(36,35,31,.68);
 }
+
+/* ==========================================================================
+   Language Switcher Component (Segmented Pill Switch)
+   ========================================================================== */
+.language-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  width: fit-content;
+  max-width: max-content;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  background: #ecefe8;
+  border: 1px solid rgba(36, 35, 31, 0.16);
+  border-radius: 9999px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.25s ease;
+  user-select: none;
+}
+.language-selector:hover {
+  border-color: rgba(91, 167, 18, 0.45);
+  background: #e4e8e0;
+}
+.lang-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  color: #242920;
+  font-family: var(--sans, inherit);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.lang-choice:hover:not(.is-active) {
+  color: #0b1108;
+  background: rgba(0, 0, 0, 0.06);
+}
+.lang-choice.is-active {
+  background: linear-gradient(135deg, #8ae026 0%, #6ec213 100%);
+  color: #0c1807;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(110, 194, 19, 0.45), 0 1px 2px rgba(0, 0, 0, 0.1);
+  transform: scale(1.02);
+}
+.lang-sep {
+  display: none !important;
+}
+

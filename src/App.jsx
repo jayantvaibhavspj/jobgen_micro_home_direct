@@ -2,16 +2,28 @@ import { Children, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import parse, { attributesToProps, domToReact } from "html-react-parser";
 import siteShellMarkup from "./site-shell.html?raw";
+import siteShellMarkupZh from "./site-shell.zh.html?raw";
 import homeMarkup from "./pages/home.html?raw";
+import homeMarkupZh from "./pages/zh/home.html?raw";
 import shopMarkup from "./pages/shop.html?raw";
+import shopMarkupZh from "./pages/zh/shop.html?raw";
 import aboutMarkup from "./pages/about.html?raw";
+import aboutMarkupZh from "./pages/zh/about.html?raw";
 import financeMarkup from "./pages/finance.html?raw";
+import financeMarkupZh from "./pages/zh/finance.html?raw";
 import contactMarkup from "./pages/contact.html?raw";
+import contactMarkupZh from "./pages/zh/contact.html?raw";
 import blogMarkup from "./pages/blog.html?raw";
+import blogMarkupZh from "./pages/zh/blog.html?raw";
 import blogGuideMarkup from "./pages/blog-guide.html?raw";
+import blogGuideMarkupZh from "./pages/zh/blog-guide.html?raw";
 import modularHomeArticleMarkup from "./pages/blog-modular-home.html?raw";
+import modularHomeArticleMarkupZh from "./pages/zh/blog-modular-home.html?raw";
 import expandableHomeArticleMarkup from "./pages/blog-expandable-home.html?raw";
+import expandableHomeArticleMarkupZh from "./pages/zh/blog-expandable-home.html?raw";
 import productMarkup from "./pages/product.html?raw";
+import productMarkupZh from "./pages/zh/product.html?raw";
+import { categoryTranslations, translateProductName, uiTranslations, getZhAssistantReply } from "./data/translations.js";
 import shopCatalog from "./data/shop-catalog.json";
 import containerHomeVideo from "../assets/Container_home_video_pan_1080p_20261012214955_gwr_video_mvp.mp4";
 import woodenCabinVideo from "../assets/Modern_wooden_modular_cabin_panning_20261012215000_gwr_video_mvp.mp4";
@@ -46,17 +58,60 @@ const featuredFilterByShopCategory = Object.fromEntries(
 );
 const cartStorageKey = "micro-homes-direct-cart";
 const pageMarkups = {
-  home: homeMarkup,
-  shop: shopMarkup,
-  about: aboutMarkup,
-  finance: financeMarkup,
-  contact: contactMarkup,
-  blog: blogMarkup,
-  blogGuide: blogGuideMarkup,
-  blogModularHome: modularHomeArticleMarkup,
-  blogExpandableHome: expandableHomeArticleMarkup,
-  productDetail: productMarkup
+  en: {
+    home: homeMarkup,
+    shop: shopMarkup,
+    about: aboutMarkup,
+    finance: financeMarkup,
+    contact: contactMarkup,
+    blog: blogMarkup,
+    blogGuide: blogGuideMarkup,
+    blogModularHome: modularHomeArticleMarkup,
+    blogExpandableHome: expandableHomeArticleMarkup,
+    productDetail: productMarkup
+  },
+  zh: {
+    home: homeMarkupZh,
+    shop: shopMarkupZh,
+    about: aboutMarkupZh,
+    finance: financeMarkupZh,
+    contact: contactMarkupZh,
+    blog: blogMarkupZh,
+    blogGuide: blogGuideMarkupZh,
+    blogModularHome: modularHomeArticleMarkupZh,
+    blogExpandableHome: expandableHomeArticleMarkupZh,
+    productDetail: productMarkupZh
+  }
 };
+const siteShellMarkups = {
+  en: siteShellMarkup,
+  zh: siteShellMarkupZh
+};
+
+function LanguageSwitcher({ lang, onLanguageChange }) {
+  return (
+    <div className="language-selector" role="group" aria-label={lang === "zh" ? "语言切换" : "Language selector"}>
+      <button
+        type="button"
+        className={`lang-choice${lang === "en" ? " is-active" : ""}`}
+        onClick={() => onLanguageChange("en")}
+        aria-pressed={lang === "en"}
+        title="Switch to English"
+      >
+        EN
+      </button>
+      <button
+        type="button"
+        className={`lang-choice${lang === "zh" ? " is-active" : ""}`}
+        onClick={() => onLanguageChange("zh")}
+        aria-pressed={lang === "zh"}
+        title="切换至中文模式"
+      >
+        中文
+      </button>
+    </div>
+  );
+}
 
 function getCurrentPage(pathname = window.location.pathname) {
   const path = pathname.toLowerCase().replace(/\/+$/, "") || "/";
@@ -131,6 +186,41 @@ const featuredModels = [
     image: "assets/product-6m-office.webp",
     alt: "6M 20FT Backyard Office",
     category: "FLEXIBLE SPACE",
+    price: "$23,000",
+    oldPrice: ""
+  }
+];
+
+const featuredModelsZh = [
+  {
+    name: "3M 微型独立舱",
+    image: "assets/product-3m-pod.webp",
+    alt: "3M 微型舱产品实拍",
+    category: "小巧精致 · 理想之选",
+    price: "$12,800",
+    oldPrice: "$13,560"
+  },
+  {
+    name: "4M 13英尺 后院办公舱",
+    image: "assets/product-4m-office.webp",
+    alt: "4M 13英尺 后院办公舱实拍",
+    category: "专注高效 · 私享空间",
+    price: "$17,500",
+    oldPrice: ""
+  },
+  {
+    name: "6M 微型独立舱",
+    image: "assets/product-6m-pod.webp",
+    alt: "6M 微型独立舱花园实拍",
+    category: "宽敞舒适 · 开启新生活",
+    price: "$23,500",
+    oldPrice: "$28,800"
+  },
+  {
+    name: "6M 20英尺 后院办公舱",
+    image: "assets/product-6m-office.webp",
+    alt: "6M 20英尺 后院办公舱实拍",
+    category: "多功能起居办公空间",
     price: "$23,000",
     oldPrice: ""
   }
@@ -632,9 +722,13 @@ function loadCartItems() {
   }
 }
 
-function ProductDetail({ product, onAddToCart }) {
+function ProductDetail({ product, onAddToCart, lang = "en" }) {
   const [activeImage, setActiveImage] = useState(0);
   const category = shopCatalog.categories.find(({ slug }) => slug === product.category);
+  const categoryLabel = lang === "zh" && categoryTranslations[product.category]
+    ? categoryTranslations[product.category].label
+    : (category?.label || "Products");
+  const productName = translateProductName(product.name, lang);
   const gallery = product.gallery?.length
     ? product.gallery
     : [product.image || category?.image].filter(Boolean);
@@ -642,28 +736,41 @@ function ProductDetail({ product, onAddToCart }) {
     .filter((item) => item.category === product.category && item.slug !== product.slug)
     .slice(0, 4);
 
+  const translateSectionHeading = (heading) => {
+    if (lang !== "zh") return heading;
+    const map = {
+      "Key Features": "核心特性",
+      "Dimensions & Layout": "尺寸与空间布局",
+      "Materials & Construction": "材料与建筑结构",
+      "Inclusions": "标配清单",
+      "Delivery & Installation": "物流运输与安装说明",
+      "Warranty & Certification": "质保与认证说明"
+    };
+    return map[heading] || heading;
+  };
+
   return (
     <div className="product-detail-page">
-      <nav className="product-breadcrumb" aria-label="Breadcrumb">
-        <Link to="/">Home</Link><span aria-hidden="true">/</span>
-        <Link to="/shop">Shop</Link><span aria-hidden="true">/</span>
-        <Link to={`/shop?category=${encodeURIComponent(product.category)}`}>{category?.label || "Products"}</Link>
-        <span aria-hidden="true">/</span><span aria-current="page">{product.name}</span>
+      <nav className="product-breadcrumb" aria-label={lang === "zh" ? "面包屑导航" : "Breadcrumb"}>
+        <Link to="/">{lang === "zh" ? "首页" : "Home"}</Link><span aria-hidden="true">/</span>
+        <Link to="/shop">{lang === "zh" ? "商城" : "Shop"}</Link><span aria-hidden="true">/</span>
+        <Link to={`/shop?category=${encodeURIComponent(product.category)}`}>{categoryLabel}</Link>
+        <span aria-hidden="true">/</span><span aria-current="page">{productName}</span>
       </nav>
 
       <section className="product-detail-hero">
         <div className="product-detail-gallery">
           <div className="product-detail-main-image">
-            {gallery[activeImage] && <img src={gallery[activeImage]} alt={product.name} fetchPriority="high" />}
+            {gallery[activeImage] && <img src={gallery[activeImage]} alt={productName} fetchPriority="high" />}
           </div>
           {gallery.length > 1 && (
-            <div className="product-detail-thumbnails" aria-label="Product images">
+            <div className="product-detail-thumbnails" aria-label={lang === "zh" ? "产品相册" : "Product images"}>
               {gallery.map((image, index) => (
                 <button
                   className={activeImage === index ? "is-active" : ""}
                   key={`${image}-${index}`}
                   type="button"
-                  aria-label={`Show product image ${index + 1}`}
+                  aria-label={`${lang === "zh" ? "查看第" : "Show product image"} ${index + 1} ${lang === "zh" ? "张图片" : ""}`}
                   aria-pressed={activeImage === index}
                   onClick={() => setActiveImage(index)}
                 >
@@ -675,37 +782,43 @@ function ProductDetail({ product, onAddToCart }) {
         </div>
 
         <div className="product-detail-summary">
-          <p className="eyebrow"><Link to={`/shop?category=${encodeURIComponent(product.category)}`}>{category?.label || "Micro Homes Direct"}</Link></p>
-          <h1>{product.name}</h1>
-          <p className="product-detail-price">{product.price}<span>AUD · Listed price</span></p>
-          <p className="product-detail-description">{product.description || "Contact our team for product specifications, current availability and delivery information."}</p>
+          <p className="eyebrow"><Link to={`/shop?category=${encodeURIComponent(product.category)}`}>{categoryLabel}</Link></p>
+          <h1>{productName}</h1>
+          <p className="product-detail-price">{product.price}<span>{lang === "zh" ? "澳元 · 标示售价" : "AUD · Listed price"}</span></p>
+          <p className="product-detail-description">
+            {product.description
+              ? (lang === "zh" ? `此款 ${productName} 采用现代高品质建筑结构，配备舒适保温层与灵活空间布局。欢迎联系我们的专业团队获取详细技术规格、当前现货库存及全澳送货信息。` : product.description)
+              : (lang === "zh" ? "欢迎联系我们的团队获取产品技术规格、当前库存与送货详情。" : "Contact our team for product specifications, current availability and delivery information.")}
+          </p>
           <div className="product-detail-actions">
             <button className="cart-add-button cart-add-button--detail" type="button" onClick={() => onAddToCart(product.slug)}>
-              Add to cart
+              {lang === "zh" ? "加入购物车" : "Add to cart"}
             </button>
-            <button className="button quote-open" type="button" data-interest={product.name}>
-              Enquire about this product <span className="button-icon">↗</span>
+            <button className="button quote-open" type="button" data-interest={productName}>
+              {lang === "zh" ? "咨询此款产品" : "Enquire about this product"} <span className="button-icon">↗</span>
             </button>
-            <a className="product-detail-phone" href="tel:1300229166">Call 1300 229 166</a>
+            <a className="product-detail-phone" href="tel:1300229166">{lang === "zh" ? "致电 1300 229 166" : "Call 1300 229 166"}</a>
           </div>
-          <p className="product-detail-disclaimer">Prices and availability may change. Confirm final details with our team before ordering.</p>
+          <p className="product-detail-disclaimer">
+            {lang === "zh" ? "标示售价与库存可能会随市场变动，订购前请与团队确认最终配置及细节。" : "Prices and availability may change. Confirm final details with our team before ordering."}
+          </p>
         </div>
       </section>
 
       {product.detailsLoadError && (
         <p className="product-detail-load-error" role="alert">
-          Product information could not be loaded. The current listed product details are shown above. Please contact our team if you need more information.
+          {lang === "zh" ? "产品详细信息暂时未能加载。上方已展示基础标价与规格，如需进一步了解欢迎联系团队。" : "Product information could not be loaded. The current listed product details are shown above. Please contact our team if you need more information."}
         </p>
       )}
 
       {product.details?.length > 0 && (
-        <section className="product-detail-information" aria-label={`${product.name} details`}>
-          <p className="eyebrow">PRODUCT INFORMATION</p>
-          <h2>Made for <em>the way you live.</em></h2>
+        <section className="product-detail-information" aria-label={`${productName} details`}>
+          <p className="eyebrow">{lang === "zh" ? "产品详细信息" : "PRODUCT INFORMATION"}</p>
+          <h2>{lang === "zh" ? <>专为您理想的<em>生活方式而造。</em></> : <>Made for <em>the way you live.</em></>}</h2>
           <div className="product-detail-sections">
             {product.details.map((section, index) => (
               <article className="product-detail-section" key={`${section.heading}-${index}`}>
-                <h3>{section.heading}</h3>
+                <h3>{translateSectionHeading(section.heading)}</h3>
                 {section.paragraphs.map((paragraph, paragraphIndex) => (
                   <p key={paragraphIndex}>{paragraph}</p>
                 ))}
@@ -723,22 +836,27 @@ function ProductDetail({ product, onAddToCart }) {
       {relatedProducts.length > 0 && (
         <section className="product-related-products" aria-label="Related products">
           <div className="product-related-heading">
-            <div><p className="eyebrow">EXPLORE THE COLLECTION</p><h2>More in <em>{category?.label || "this range"}.</em></h2></div>
-            <Link to={`/shop?category=${encodeURIComponent(product.category)}`}>View category ↗</Link>
+            <div>
+              <p className="eyebrow">{lang === "zh" ? "探索精选系列" : "EXPLORE THE COLLECTION"}</p>
+              <h2>{lang === "zh" ? <>更多<em>{categoryLabel}。</em></> : <>More in <em>{categoryLabel}.</em></>}</h2>
+            </div>
+            <Link to={`/shop?category=${encodeURIComponent(product.category)}`}>
+              {lang === "zh" ? "查看整类产品 ↗" : "View category ↗"}
+            </Link>
           </div>
           <div className="shop-product-grid">
             {relatedProducts.map((item) => (
               <article className="shop-product-card" key={item.slug}>
-                <Link className="shop-product-image" to={item.localUrl} aria-label={`View ${item.name}`}>
-                  <img src={item.image || category?.image} alt={item.name} loading="lazy" />
+                <Link className="shop-product-image" to={item.localUrl} aria-label={`View ${translateProductName(item.name, lang)}`}>
+                  <img src={item.image || category?.image} alt={translateProductName(item.name, lang)} loading="lazy" />
                   <span className="shop-product-link" aria-hidden="true">↗</span>
                 </Link>
                 <div className="shop-product-info">
-                  <p className="shop-product-category">{category?.label}</p>
-                  <h3><Link to={item.localUrl}>{item.name}</Link></h3>
-                  <div className="shop-product-price"><strong>{item.price}</strong><span>AUD</span></div>
+                  <p className="shop-product-category">{categoryLabel}</p>
+                  <h3><Link to={item.localUrl}>{translateProductName(item.name, lang)}</Link></h3>
+                  <div className="shop-product-price"><strong>{item.price}</strong><span>{lang === "zh" ? "澳元" : "AUD"}</span></div>
                   <button className="cart-add-button" type="button" onClick={() => onAddToCart(item.slug)}>
-                    Add to cart
+                    {lang === "zh" ? "加入购物车" : "Add to cart"}
                   </button>
                 </div>
               </article>
@@ -757,7 +875,9 @@ function ProductDetailRoute({
   onCartOpen,
   onCartClose,
   onCartQuantityChange,
-  onCartRemove
+  onCartRemove,
+  lang = "en",
+  onLanguageChange
 }) {
   const { slug } = useParams();
   const product = shopCatalog.products.find((item) => item.slug === slug);
@@ -787,6 +907,8 @@ function ProductDetailRoute({
     return (
       <SiteApp
         page="productDetail"
+        lang={lang}
+        onLanguageChange={onLanguageChange}
         onAddToCart={onAddToCart}
         cartItems={cartItems}
         cartOpen={cartOpen}
@@ -794,13 +916,15 @@ function ProductDetailRoute({
         onCartClose={onCartClose}
         onCartQuantityChange={onCartQuantityChange}
         onCartRemove={onCartRemove}
-        product={{ ...product, description: "Loading product information…", details: [] }}
+        product={{ ...product, description: lang === "zh" ? "正在加载产品信息…" : "Loading product information…", details: [] }}
       />
     );
   }
   return (
     <SiteApp
       page="productDetail"
+      lang={lang}
+      onLanguageChange={onLanguageChange}
       onAddToCart={onAddToCart}
       cartItems={cartItems}
       cartOpen={cartOpen}
@@ -817,7 +941,7 @@ function ProductDetailRoute({
   );
 }
 
-function ShopCatalog({ onAddToCart }) {
+function ShopCatalog({ onAddToCart, lang = "en" }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryCategory = searchParams.get("category");
   const [activeCategory, setActiveCategory] = useState(() => (
@@ -842,16 +966,28 @@ function ShopCatalog({ onAddToCart }) {
     setSearchParams(nextParams, { replace: true, preventScrollReset: true });
   }
 
+  const tCategoryLabel = (category) => lang === "zh" && categoryTranslations[category.slug]
+    ? categoryTranslations[category.slug].label
+    : category.label;
+
+  const tCategoryIntro = (category) => lang === "zh" && categoryTranslations[category.slug]
+    ? categoryTranslations[category.slug].intro
+    : category.intro;
+
   return (
-    <section className="shop-catalog section-pad" id="models" aria-label="Shop products and categories">
+    <section className="shop-catalog section-pad" id="models" aria-label={lang === "zh" ? "产品商城与分类" : "Shop products and categories"}>
       <div className="shop-category-picker" id="shop-product-catalog">
         <div className="shop-category-heading">
-          <p className="eyebrow">FIND YOUR FIT</p>
-          <h2>Space that fits <em>your next chapter.</em></h2>
-          <p>From focused workspaces to flexible living and storage, explore the range and ask us about the details that matter to your plans.</p>
+          <p className="eyebrow">{lang === "zh" ? "寻找专属空间" : "FIND YOUR FIT"}</p>
+          <h2>{lang === "zh" ? <>契合您人生<em>下一篇章的理想空间。</em></> : <>Space that fits <em>your next chapter.</em></>}</h2>
+          <p>
+            {lang === "zh"
+              ? "从专注高效的工作空间到灵活舒适的居所与仓储，探索全系列并向我们咨询切合您计划的各项细节。"
+              : "From focused workspaces to flexible living and storage, explore the range and ask us about the details that matter to your plans."}
+          </p>
         </div>
-        <p className="eyebrow">SHOP BY CATEGORY</p>
-        <div className="shop-category-grid" role="group" aria-label="Product categories">
+        <p className="eyebrow">{lang === "zh" ? "按产品类别选购" : "SHOP BY CATEGORY"}</p>
+        <div className="shop-category-grid" role="group" aria-label={lang === "zh" ? "产品类别" : "Product categories"}>
           {shopCatalog.categories.map((category) => (
             <button
               className={`shop-category-card${activeCategory === category.slug ? " is-active" : ""}`}
@@ -864,8 +1000,8 @@ function ShopCatalog({ onAddToCart }) {
                 <img src={category.image} alt="" loading="lazy" />
               </span>
               <span className="shop-category-details">
-                <span>{category.label}</span>
-                <small>{category.count} products</small>
+                <span>{tCategoryLabel(category)}</span>
+                <small>{category.count} {lang === "zh" ? "款产品" : "products"}</small>
               </span>
               <span className="shop-category-arrow" aria-hidden="true">↗</span>
             </button>
@@ -877,59 +1013,66 @@ function ShopCatalog({ onAddToCart }) {
           aria-pressed={activeCategory === "all"}
           onClick={() => selectCategory("all")}
         >
-          View all {shopCatalog.products.length} products <span aria-hidden="true">↗</span>
+          {lang === "zh" ? `查看全部 ${shopCatalog.products.length} 款产品` : `View all ${shopCatalog.products.length} products`} <span aria-hidden="true">↗</span>
         </button>
       </div>
 
       <div className="shop-products" id="shop-products">
         <div className="shop-products-heading">
           <div>
-            <p className="eyebrow">{activeCategoryInfo ? activeCategoryInfo.label : "THE FULL COLLECTION"}</p>
-            <h2>{activeCategoryInfo ? activeCategoryInfo.label : "All products"}</h2>
+            <p className="eyebrow">{activeCategoryInfo ? tCategoryLabel(activeCategoryInfo) : (lang === "zh" ? "全系产品" : "THE FULL COLLECTION")}</p>
+            <h2>{activeCategoryInfo ? tCategoryLabel(activeCategoryInfo) : (lang === "zh" ? "全部产品" : "All products")}</h2>
           </div>
           <p className="shop-results-count" aria-live="polite">
-            {visibleProducts.length} {visibleProducts.length === 1 ? "product" : "products"}
+            {visibleProducts.length} {lang === "zh" ? "款产品" : (visibleProducts.length === 1 ? "product" : "products")}
           </p>
         </div>
         {activeCategoryInfo && (
-          <p className="shop-category-intro">{activeCategoryInfo.intro}</p>
+          <p className="shop-category-intro">{tCategoryIntro(activeCategoryInfo)}</p>
         )}
         <div className="shop-product-grid">
-          {visibleProducts.map((product) => (
-            <article className="shop-product-card" key={`${product.category}-${product.name}`}>
-              <Link
-                className="shop-product-image"
-                to={product.localUrl}
-                aria-label={`View ${product.name}`}
-              >
-                <img src={product.image || shopCatalog.categories.find(({ slug }) => slug === product.category)?.image} alt={product.name} loading="lazy" />
-                <span className="shop-product-link" aria-hidden="true">↗</span>
-              </Link>
-              <div className="shop-product-info">
-                <p className="shop-product-category">
-                  {shopCatalog.categories.find(({ slug }) => slug === product.category)?.label}
-                </p>
-                <h3><Link to={product.localUrl}>{product.name}</Link></h3>
-                <div className="shop-product-price">
-                  <strong>{product.price}</strong>
-                  <span>AUD</span>
+          {visibleProducts.map((product) => {
+            const currentCat = shopCatalog.categories.find(({ slug }) => slug === product.category);
+            const currentCatLabel = currentCat ? tCategoryLabel(currentCat) : product.category;
+            const currentProductName = translateProductName(product.name, lang);
+            return (
+              <article className="shop-product-card" key={`${product.category}-${product.name}`}>
+                <Link
+                  className="shop-product-image"
+                  to={product.localUrl}
+                  aria-label={lang === "zh" ? `查看 ${currentProductName}` : `View ${product.name}`}
+                >
+                  <img src={product.image || currentCat?.image} alt={currentProductName} loading="lazy" />
+                  <span className="shop-product-link" aria-hidden="true">↗</span>
+                </Link>
+                <div className="shop-product-info">
+                  <p className="shop-product-category">
+                    {currentCatLabel}
+                  </p>
+                  <h3><Link to={product.localUrl}>{currentProductName}</Link></h3>
+                  <div className="shop-product-price">
+                    <strong>{product.price}</strong>
+                    <span>{lang === "zh" ? "澳元" : "AUD"}</span>
+                  </div>
+                  <button className="cart-add-button" type="button" onClick={() => onAddToCart(product.slug)}>
+                    {lang === "zh" ? "加入购物车" : "Add to cart"}
+                  </button>
                 </div>
-                <button className="cart-add-button" type="button" onClick={() => onAddToCart(product.slug)}>
-                  Add to cart
-                </button>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
         <p className="shop-price-note">
-          Prices and availability are shown as listed on Micro Homes Direct and may change. Confirm details with the team before ordering.
+          {lang === "zh"
+            ? "网站所示价格与库存情况为当前标示信息，订购前请与团队确认具体配置及最终价格。"
+            : "Prices and availability are shown as listed on Micro Homes Direct and may change. Confirm details with the team before ordering."}
         </p>
       </div>
     </section>
   );
 }
 
-function CartDrawer({ items, onClose, onQuantityChange, onRemove }) {
+function CartDrawer({ items, onClose, onQuantityChange, onRemove, lang = "en" }) {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -962,44 +1105,62 @@ function CartDrawer({ items, onClose, onQuantityChange, onRemove }) {
       <aside className="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title">
         <div className="cart-drawer-heading">
           <div>
-            <p className="eyebrow">YOUR SELECTION</p>
-            <h2 id="cart-title">Shopping cart <span>({itemCount})</span></h2>
+            <p className="eyebrow">{lang === "zh" ? "已选商品" : "YOUR SELECTION"}</p>
+            <h2 id="cart-title">{lang === "zh" ? "您的购物车" : "Shopping cart"} <span>({itemCount})</span></h2>
           </div>
-          <button className="cart-close" type="button" aria-label="Close cart" onClick={onClose}>×</button>
+          <button className="cart-close" type="button" aria-label={lang === "zh" ? "关闭购物车" : "Close cart"} onClick={onClose}>×</button>
         </div>
         {cartProducts.length === 0 ? (
           <div className="cart-empty">
-            <p>Your cart is empty.</p>
-            <button className="cart-continue-button" type="button" onClick={onClose}>Continue shopping</button>
+            <p>{lang === "zh" ? "您的购物车是空的。" : "Your cart is empty."}</p>
+            <button className="cart-continue-button" type="button" onClick={onClose}>
+              {lang === "zh" ? "继续选购" : "Continue shopping"}
+            </button>
           </div>
         ) : (
           <>
             <div className="cart-items">
-              {cartProducts.map(({ product, quantity }) => (
-                <article className="cart-item" key={product.slug}>
-                  <Link className="cart-item-image" to={product.localUrl} onClick={onClose}>
-                    <img src={product.image || shopCatalog.categories.find(({ slug }) => slug === product.category)?.image} alt="" />
-                  </Link>
-                  <div className="cart-item-details">
-                    <Link to={product.localUrl} onClick={onClose}>{product.name}</Link>
-                    <strong>{product.price} AUD</strong>
-                    <div className="cart-item-controls">
-                      <div className="cart-quantity" aria-label={`Quantity for ${product.name}`}>
-                        <button type="button" aria-label={`Decrease quantity of ${product.name}`} onClick={() => onQuantityChange(product.slug, quantity - 1)}>−</button>
-                        <span>{quantity}</span>
-                        <button type="button" aria-label={`Increase quantity of ${product.name}`} onClick={() => onQuantityChange(product.slug, quantity + 1)}>+</button>
+              {cartProducts.map(({ product, quantity }) => {
+                const prodName = translateProductName(product.name, lang);
+                return (
+                  <article className="cart-item" key={product.slug}>
+                    <Link className="cart-item-image" to={product.localUrl} onClick={onClose}>
+                      <img src={product.image || shopCatalog.categories.find(({ slug }) => slug === product.category)?.image} alt="" />
+                    </Link>
+                    <div className="cart-item-details">
+                      <Link to={product.localUrl} onClick={onClose}>{prodName}</Link>
+                      <strong>{product.price} {lang === "zh" ? "澳元" : "AUD"}</strong>
+                      <div className="cart-item-controls">
+                        <div className="cart-quantity" aria-label={lang === "zh" ? `数量：${prodName}` : `Quantity for ${product.name}`}>
+                          <button type="button" aria-label={`Decrease quantity of ${product.name}`} onClick={() => onQuantityChange(product.slug, quantity - 1)}>−</button>
+                          <span>{quantity}</span>
+                          <button type="button" aria-label={`Increase quantity of ${product.name}`} onClick={() => onQuantityChange(product.slug, quantity + 1)}>+</button>
+                        </div>
+                        <button className="cart-remove" type="button" onClick={() => onRemove(product.slug)}>
+                          {lang === "zh" ? "移除" : "Remove"}
+                        </button>
                       </div>
-                      <button className="cart-remove" type="button" onClick={() => onRemove(product.slug)}>Remove</button>
                     </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
             <div className="cart-drawer-footer">
-              <div className="cart-subtotal"><span>Listed subtotal</span><strong>${subtotal.toLocaleString("en-AU", { maximumFractionDigits: 2 })} AUD</strong></div>
-              <p>Delivery and final pricing are confirmed with our team before ordering.</p>
-              <Link className="button cart-contact-button" to="/contact" onClick={onClose}>Contact us about your cart <span className="button-icon">↗</span></Link>
-              <button className="cart-continue-button" type="button" onClick={onClose}>Continue shopping</button>
+              <div className="cart-subtotal">
+                <span>{lang === "zh" ? "标示商品小计" : "Listed subtotal"}</span>
+                <strong>${subtotal.toLocaleString("en-AU", { maximumFractionDigits: 2 })} {lang === "zh" ? "澳元" : "AUD"}</strong>
+              </div>
+              <p>
+                {lang === "zh"
+                  ? "配送安装费用与最终成交价格将在正式下单前由专业团队与您核实。"
+                  : "Delivery and final pricing are confirmed with our team before ordering."}
+              </p>
+              <Link className="button cart-contact-button" to="/contact" onClick={onClose}>
+                {lang === "zh" ? "就购物车内容联系我们" : "Contact us about your cart"} <span className="button-icon">↗</span>
+              </Link>
+              <button className="cart-continue-button" type="button" onClick={onClose}>
+                {lang === "zh" ? "继续选购" : "Continue shopping"}
+              </button>
             </div>
           </>
         )}
@@ -1040,15 +1201,24 @@ function SiteMarkup({
   quoteModel,
   onQuoteModelChange,
   enquiryNote,
-  searchNote
+  searchNote,
+  lang = "en",
+  onLanguageChange
 }) {
+  const currentFeaturedList = lang === "zh" ? featuredModelsZh : featuredModels;
+
   const options = useMemo(() => ({
     replace(node) {
       if (!node.attribs) return undefined;
 
       const props = attributesToProps(node.attribs);
+      const classes = node.attribs.class || "";
+
+      if (classes.split(/\s+/).includes("lang-switcher")) {
+        return <LanguageSwitcher lang={lang} onLanguageChange={onLanguageChange} />;
+      }
       if (node.name === "div" && node.attribs.id === "route-page-content") {
-        return <>{parse(pageMarkups[page], options)}</>;
+        return <>{parse((pageMarkups[lang] || pageMarkups.en)[page], options)}</>;
       }
       if (node.name === "div" && node.attribs.id === "search-background") {
         return <SearchBackdrop index={searchBackgroundIndex} previousIndex={previousSearchBackgroundIndex} />;
@@ -1057,13 +1227,13 @@ function SiteMarkup({
         return <SearchBackdrop index={searchBackgroundIndex} previousIndex={previousSearchBackgroundIndex} className="search-backdrop faq-backdrop" />;
       }
       if (node.name === "div" && node.attribs.id === "shop-product-catalog") {
-        return <ShopCatalog onAddToCart={onAddToCart} />;
+        return <ShopCatalog onAddToCart={onAddToCart} lang={lang} />;
       }
       if (node.name === "div" && node.attribs.id === "finance-calculator-embed") {
         return <FinanceCalculatorFrame />;
       }
       if (node.name === "div" && node.attribs.id === "product-detail-mount") {
-        return <ProductDetail product={product} onAddToCart={onAddToCart} />;
+        return <ProductDetail product={product} onAddToCart={onAddToCart} lang={lang} />;
       }
 
       if (["a", "button"].includes(node.name) && (node.attribs.class || "").split(/\s+/).includes("cart-button")) {
@@ -1089,8 +1259,8 @@ function SiteMarkup({
       }
 
       if (node.name === "img" && node.attribs.id === "hero-feature-image") {
-        props.src = featuredModels[featuredIndex].image;
-        props.alt = featuredModels[featuredIndex].alt;
+        props.src = currentFeaturedList[featuredIndex].image;
+        props.alt = currentFeaturedList[featuredIndex].alt;
         props.fetchPriority = "high";
         delete props.fetchpriority;
         return <img key={featuredIndex} {...props} />;
@@ -1101,7 +1271,6 @@ function SiteMarkup({
         return <img {...props} />;
       }
       const children = domToReact(node.children || [], options);
-      const classes = node.attribs.class || "";
 
       if (page === "home" && node.name === "div" && classes.split(/\s+/).includes("hero-backdrop")) {
         return (
@@ -1137,7 +1306,7 @@ function SiteMarkup({
               <button
                 className="sidebar-backdrop"
                 type="button"
-                aria-label="Close navigation"
+                aria-label={lang === "zh" ? "关闭导航" : "Close navigation"}
                 onClick={() => onMenuToggle(false)}
               />
             )}
@@ -1205,40 +1374,42 @@ function SiteMarkup({
           accessories: ["accessory", "accessories"]
         };
         const counts = { all: 9, pods: 4, homes: 1, containers: 1, bathroom: 1, storage: 1, accessories: 1 };
-        const message = activeFilter === "all"
-          ? `Showing all ${counts.all} featured products`
-          : `Showing ${counts[activeFilter]} ${labels[activeFilter][counts[activeFilter] === 1 ? 0 : 1]}`;
+        const message = lang === "zh"
+          ? (activeFilter === "all" ? `显示全部 ${counts.all} 款精选推荐产品` : `显示该分类推荐产品`)
+          : (activeFilter === "all"
+            ? `Showing all ${counts.all} featured products`
+            : `Showing ${counts[activeFilter]} ${labels[activeFilter][counts[activeFilter] === 1 ? 0 : 1]}`);
         return <span {...props} aria-live="polite">{message}</span>;
       }
 
       if (node.name === "h2" && node.attribs.id === "hero-feature-name") {
-        return <h2 {...props}>{featuredModels[featuredIndex].name}</h2>;
+        return <h2 {...props}>{currentFeaturedList[featuredIndex].name}</h2>;
       }
 
       if (node.name === "p" && node.attribs.id === "hero-eyebrow") {
-        return <p {...props}>FLEXIBLE SPACES · MADE FOR REAL LIFE</p>;
+        return <p {...props}>{lang === "zh" ? "灵活多变空间 · 专为真实生活打造" : "FLEXIBLE SPACES · MADE FOR REAL LIFE"}</p>;
       }
 
       if (node.name === "a" && node.attribs.id === "hero-explore-link") {
         const { href, ...linkProps } = props;
-        return <Link {...linkProps} to={href}>Explore our range<span className="button-icon">↗</span></Link>;
+        return <Link {...linkProps} to={href}>{lang === "zh" ? "探索全系产品" : "Explore our range"}<span className="button-icon">↗</span></Link>;
       }
 
       if (node.name === "span" && node.attribs.id === "hero-feature-category") {
-        return <span {...props}>{featuredModels[featuredIndex].category}</span>;
+        return <span {...props}>{currentFeaturedList[featuredIndex].category}</span>;
       }
 
       if (node.name === "strong" && node.attribs.id === "hero-feature-price") {
-        return <strong {...props}>{featuredModels[featuredIndex].price}</strong>;
+        return <strong {...props}>{currentFeaturedList[featuredIndex].price}</strong>;
       }
 
       if (node.name === "del" && node.attribs.id === "hero-feature-old-price") {
-        const oldPrice = featuredModels[featuredIndex].oldPrice;
+        const oldPrice = currentFeaturedList[featuredIndex].oldPrice;
         return <del {...props} style={oldPrice ? undefined : { display: "none" }}>{oldPrice}</del>;
       }
 
       if (node.name === "span" && node.attribs.id === "featured-slide-count") {
-        return <span {...props}>{`${String(featuredIndex + 1).padStart(2, "0")} / ${String(featuredModels.length).padStart(2, "0")}`}</span>;
+        return <span {...props}>{`${String(featuredIndex + 1).padStart(2, "0")} / ${String(currentFeaturedList.length).padStart(2, "0")}`}</span>;
       }
 
       if (node.name === "button" && classes.split(/\s+/).includes("featured-dot")) {
@@ -1258,7 +1429,7 @@ function SiteMarkup({
           <button
             {...props}
             onClick={() => onFeaturedChange(
-              (featuredIndex + (direction === "next" ? 1 : -1) + featuredModels.length) % featuredModels.length
+              (featuredIndex + (direction === "next" ? 1 : -1) + currentFeaturedList.length) % currentFeaturedList.length
             )}
           >
             {children}
@@ -1341,7 +1512,7 @@ function SiteMarkup({
 
       if (node.name === "select" && node.attribs.id === "quote-model") {
         const hasQuoteModelOption = Children.toArray(children).some((option) => (
-          String(option.props.value ?? option.props.children) === quoteModel
+          option?.props && String(option.props.value ?? option.props.children) === quoteModel
         ));
         return (
           <select {...props} value={quoteModel} onChange={(event) => onQuoteModelChange(event.target.value)}>
@@ -1366,17 +1537,22 @@ function SiteMarkup({
       if (node.name === "select" && node.attribs.id === "site-search") {
         return (
           <select {...props} defaultValue="">
-            <option value="">Choose a category or product</option>
-            {shopCatalog.categories.map((category) => (
-              <optgroup label={category.label} key={category.slug}>
-                <option value={`category:${category.slug}`}>All {category.label}</option>
-                {shopCatalog.products
-                  .filter((item) => item.category === category.slug)
-                  .map((item) => (
-                    <option value={`product:${item.localUrl}`} key={item.slug}>{item.name}</option>
-                  ))}
-              </optgroup>
-            ))}
+            <option value="">{lang === "zh" ? "请选择分类或具体产品" : "Choose a category or product"}</option>
+            {shopCatalog.categories.map((category) => {
+              const catLabel = lang === "zh" && categoryTranslations[category.slug] ? categoryTranslations[category.slug].label : category.label;
+              return (
+                <optgroup label={catLabel} key={category.slug}>
+                  <option value={`category:${category.slug}`}>{lang === "zh" ? `全部 ${catLabel}` : `All ${category.label}`}</option>
+                  {shopCatalog.products
+                    .filter((item) => item.category === category.slug)
+                    .map((item) => (
+                      <option value={`product:${item.localUrl}`} key={item.slug}>
+                        {translateProductName(item.name, lang)}
+                      </option>
+                    ))}
+                </optgroup>
+              );
+            })}
           </select>
         );
       }
@@ -1458,10 +1634,10 @@ function SiteMarkup({
     featuredIndex, onFeaturedChange, autoplayPaused, onAutoplayToggle, reducedMotion,
     quoteDialogRef, searchDialogRef,
     quoteModel, onQuoteModelChange, enquiryNote, searchNote, onQuoteOpen, onSearchOpen, onSearchNavigate,
-    searchOpen, searchBackgroundIndex, previousSearchBackgroundIndex
+    searchOpen, searchBackgroundIndex, previousSearchBackgroundIndex, lang, onLanguageChange, currentFeaturedList
   ]);
 
-  return parse(siteShellMarkup, options);
+  return parse(siteShellMarkups[lang] || siteShellMarkup, options);
 }
 
 const assistantProducts = [
@@ -1572,11 +1748,14 @@ function getAssistantReply(question) {
   return { text: "I’m not certain about that detail, and I don’t want to guess. I can help with products, listed prices, finance, delivery, council questions, warranty, showroom locations and quotes. You can also call 1300 229 166." };
 }
 
-function ChatAssistant({ onQuoteOpen, page }) {
+function ChatAssistant({ onQuoteOpen, page, lang = "en" }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
+  const initialGreeting = lang === "zh"
+    ? "您好！👋 我是 MHD 智能助手。关于我们的太空舱微型房屋、标价、分期贷款或网站任何疑问，都可以随时问我。"
+    : "Hello! 👋 I’m MHD Assistant. Ask me about our products, listed prices, finance or anything else on this website.";
   const [messages, setMessages] = useState([
-    { id: 1, from: "assistant", text: "Hello! 👋 I’m MHD Assistant. Ask me about our products, listed prices, finance or anything else on this website." }
+    { id: 1, from: "assistant", text: initialGreeting }
   ]);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const widgetRef = useRef(null);
@@ -1585,6 +1764,21 @@ function ChatAssistant({ onQuoteOpen, page }) {
   const dragRef = useRef(null);
   const draggedRef = useRef(false);
   const messageIdRef = useRef(1);
+
+  useEffect(() => {
+    setMessages((current) => {
+      if (current.length === 1 && current[0].from === "assistant") {
+        return [{
+          id: 1,
+          from: "assistant",
+          text: lang === "zh"
+            ? "您好！👋 我是 MHD 智能助手。关于我们的太空舱微型房屋、标价、分期贷款或网站任何疑问，都可以随时问我。"
+            : "Hello! 👋 I’m MHD Assistant. Ask me about our products, listed prices, finance or anything else on this website."
+        }];
+      }
+      return current;
+    });
+  }, [lang]);
 
   useEffect(() => {
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: "smooth" });
@@ -1622,7 +1816,7 @@ function ChatAssistant({ onQuoteOpen, page }) {
     event.preventDefault();
     const question = draft.trim();
     if (!question) return;
-    const reply = getAssistantReply(question);
+    const reply = lang === "zh" ? getZhAssistantReply(question) : getAssistantReply(question);
     messageIdRef.current += 1;
     setMessages((current) => [
       ...current,
@@ -1693,7 +1887,7 @@ function ChatAssistant({ onQuoteOpen, page }) {
       onPointerCancel={!open ? stopDrag : undefined}
     >
       {open ? (
-        <section className="chat-panel" ref={panelRef} aria-label="MHD Assistant chat">
+        <section className="chat-panel" ref={panelRef} aria-label={lang === "zh" ? "MHD 助手在线对话" : "MHD Assistant chat"}>
           <header
             className="chat-header"
             onPointerDown={startDrag}
@@ -1702,12 +1896,12 @@ function ChatAssistant({ onQuoteOpen, page }) {
           >
             <span className="chat-avatar" aria-hidden="true"><img src="/assets/brand-logo.webp" alt="" /></span>
             <span className="chat-heading">
-              <strong>MHD Assistant</strong>
-              <small><i aria-hidden="true" /> Online · Drag to move</small>
+              <strong>{lang === "zh" ? "MHD 智能助手" : "MHD Assistant"}</strong>
+              <small><i aria-hidden="true" /> {lang === "zh" ? "在线 · 可拖动位置" : "Online · Drag to move"}</small>
             </span>
-            <button className="chat-close" type="button" onClick={() => setOpen(false)} aria-label="Minimize chat">−</button>
+            <button className="chat-close" type="button" onClick={() => setOpen(false)} aria-label={lang === "zh" ? "最小化聊天" : "Minimize chat"}>−</button>
           </header>
-          <div className="chat-messages" ref={messagesRef} role="log" aria-live="polite" aria-label="Chat messages">
+          <div className="chat-messages" ref={messagesRef} role="log" aria-live="polite" aria-label={lang === "zh" ? "聊天记录" : "Chat messages"}>
             {messages.map((message) => (
               <div className={`chat-message ${message.from}`} key={message.id}>
                 <p>{message.text}</p>
@@ -1735,23 +1929,29 @@ function ChatAssistant({ onQuoteOpen, page }) {
               </div>
             ))}
           </div>
-          <div className="chat-suggestions" aria-label="Suggested questions">
-            <button type="button" onClick={() => addSuggestedQuestion("What products do you offer?")}>Products</button>
-            <button type="button" onClick={() => addSuggestedQuestion("What are the listed prices?")}>Prices</button>
-            <button type="button" onClick={() => addSuggestedQuestion("How do I get a quote?")}>Get a quote</button>
+          <div className="chat-suggestions" aria-label={lang === "zh" ? "推荐提问" : "Suggested questions"}>
+            <button type="button" onClick={() => addSuggestedQuestion(lang === "zh" ? "你们提供哪些产品？" : "What products do you offer?")}>
+              {lang === "zh" ? "产品系列" : "Products"}
+            </button>
+            <button type="button" onClick={() => addSuggestedQuestion(lang === "zh" ? "产品价格是多少？" : "What are the listed prices?")}>
+              {lang === "zh" ? "价格清单" : "Prices"}
+            </button>
+            <button type="button" onClick={() => addSuggestedQuestion(lang === "zh" ? "如何获取正式报价？" : "How do I get a quote?")}>
+              {lang === "zh" ? "获取报价" : "Get a quote"}
+            </button>
           </div>
           <form className="chat-compose" onSubmit={sendMessage}>
-            <label className="sr-only" htmlFor="assistant-message">Message MHD Assistant</label>
+            <label className="sr-only" htmlFor="assistant-message">{lang === "zh" ? "给 MHD 助手发送消息" : "Message MHD Assistant"}</label>
             <input
               id="assistant-message"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Ask about products, prices..."
+              placeholder={lang === "zh" ? "询问产品、价格、交付等…" : "Ask about products, prices..."}
               autoComplete="off"
             />
-            <button type="submit" aria-label="Send message" disabled={!draft.trim()}>➤</button>
+            <button type="submit" aria-label={lang === "zh" ? "发送" : "Send message"} disabled={!draft.trim()}>➤</button>
           </form>
-          <p className="chat-disclaimer">Website info only. Confirm prices and availability with our team.</p>
+          <p className="chat-disclaimer">{lang === "zh" ? "仅供网站信息参考。具体价格及供应情况以客服团队确认为准。" : "Website info only. Confirm prices and availability with our team."}</p>
           <a className="chat-powered" href="https://jobgen.ai" target="_blank" rel="noopener noreferrer">
             Powered by jobgen.ai
           </a>
@@ -1767,23 +1967,35 @@ function ChatAssistant({ onQuoteOpen, page }) {
             }
             setOpen(true);
           }}
-          aria-label="Open MHD Assistant chat. Drag to move."
+          aria-label={lang === "zh" ? "打开 MHD 智能助手。按住可拖动。" : "Open MHD Assistant chat. Drag to move."}
         >
           <span className="chat-launcher-mark">
             <img src="/assets/brand-logo.webp" alt="" />
           </span>
           <span className="chat-launcher-label">
             <i aria-hidden="true" />
-            <span><strong>MHD Assistant</strong><small>Ask me anything</small></span>
+            <span><strong>{lang === "zh" ? "MHD 智能助手" : "MHD Assistant"}</strong><small>{lang === "zh" ? "在线咨询" : "Ask me anything"}</small></span>
           </span>
-          <i className="chat-launcher-status" aria-label="Assistant available" />
+          <i className="chat-launcher-status" aria-label={lang === "zh" ? "助手在线" : "Assistant available"} />
         </button>
       )}
     </div>
   );
 }
 
-function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, onAddToCart, onCartQuantityChange, onCartRemove }) {
+function SiteApp({
+  page,
+  product,
+  cartItems,
+  cartOpen,
+  onCartOpen,
+  onCartClose,
+  onAddToCart,
+  onCartQuantityChange,
+  onCartRemove,
+  lang = "en",
+  onLanguageChange
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const pageRef = useRef(null);
@@ -1871,7 +2083,7 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
   }, [location.pathname, reducedMotion]);
 
   useEffect(() => {
-    const pageTitles = {
+    const pageTitlesEn = {
       home: "Micro Homes Direct | Tiny Homes, Pods & Container Homes Australia",
       shop: "Shop Tiny Homes, Pods & Containers | Micro Homes Direct",
       about: "About | Micro Homes Direct",
@@ -1883,10 +2095,23 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
       blogExpandableHome: "Planning an Expandable Home | Micro Homes Direct",
       productDetail: `${product?.name || "Product"} | Micro Homes Direct`
     };
-    document.title = pageTitles[page];
+    const pageTitlesZh = {
+      home: "Micro Homes Direct | 澳大利亚微型移动房屋、太空舱与集装箱房屋",
+      shop: "选购微型房屋、太空舱与集装箱房 | Micro Homes Direct",
+      about: "关于我们 | Micro Homes Direct",
+      finance: "分期金融服务 | Micro Homes Direct",
+      contact: "联系我们 | Micro Homes Direct",
+      blog: "博客专栏 | Micro Homes Direct",
+      blogGuide: "微型房屋全成本指南 | Micro Homes Direct",
+      blogModularHome: "模块化与装配式房屋详解 | Micro Homes Direct",
+      blogExpandableHome: "双翼折叠扩展房规划指南 | Micro Homes Direct",
+      productDetail: `${translateProductName(product?.name || "产品", "zh")} | Micro Homes Direct`
+    };
+    document.title = (lang === "zh" ? pageTitlesZh[page] : pageTitlesEn[page]) || (lang === "zh" ? pageTitlesZh.home : pageTitlesEn.home);
+
     const description = document.querySelector('meta[name="description"]');
     if (description) {
-      description.content = {
+      const descriptionsEn = {
         home: "Innovative Tiny Homes for Modern Life & Work. Explore backyard pods, micro homes, container homes and flexible spaces from Micro Homes Direct, Australia.",
         shop: "Browse Micro Homes Direct products by category, with product photos and listed prices for pods, micro homes, containers, toilets and accessories.",
         about: "Learn about Micro Homes Direct, our thoughtfully designed compact spaces, locations and flexible ways to live.",
@@ -1897,14 +2122,27 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
         blogModularHome: "Learn how modular and prefab homes are built, what the terms mean, and how to compare designs, specifications and site requirements.",
         blogExpandableHome: "Plan an expandable home around your site, layout, delivery access, foundations, services and local requirements.",
         productDetail: product?.description || `View ${product?.name || "Micro Homes Direct product"}, listed price, images and product information.`
-      }[page];
+      };
+      const descriptionsZh = {
+        home: "适合现代生活与办公的创新微型移动房屋。探索澳大利亚 Micro Homes Direct 打造的庭院太空舱、微型房屋、集装箱房屋及多功能灵活空间。",
+        shop: "按类别浏览 Micro Homes Direct 产品，包含太空舱、微型房、集装箱、卫浴舱及配件的高清实景图片与标牌价格。",
+        about: "了解 Micro Homes Direct，探索我们用心设计的高品质紧凑型空间、展厅位置及自由灵活的生活方式。",
+        finance: "了解购买 Micro Homes Direct 产品的分期付款与金融贷款方案。",
+        contact: "联系 Micro Homes Direct 团队，咨询产品型号、交付物流、展厅地址或获取专属方案报价。",
+        blog: "阅读关于模块化房屋、庭院办公舱与小户型灵活生活的实用建议与原创指南。",
+        blogGuide: "微型房屋全成本规划实用指南：包括物流运输、地基平整准备及市政许可审批。",
+        blogModularHome: "深入了解模块化与预制房屋的建造工艺、行业专业术语及设计方案对比。",
+        blogExpandableHome: "围绕场地环境、户型布局、运输通道与水电路接入，全方位规划双翼折叠扩展房。",
+        productDetail: product?.description || `查看 ${translateProductName(product?.name || "产品", "zh")} 的标示价格、实景照片及规格信息。`
+      };
+      description.content = (lang === "zh" ? descriptionsZh[page] : descriptionsEn[page]) || (lang === "zh" ? descriptionsZh.home : descriptionsEn.home);
     }
     document.querySelectorAll(".nav-pill a[aria-current]").forEach((link) => {
       link.removeAttribute("aria-current");
     });
     const activeNavigationPage = page.startsWith("blog") ? "blog" : page === "productDetail" ? "shop" : page;
     document.querySelector(`.nav-pill a[data-page="${activeNavigationPage}"]`)?.setAttribute("aria-current", "page");
-  }, [page, product]);
+  }, [page, product, lang]);
 
   useEffect(() => {
     if (menuOpen) {
@@ -1984,15 +2222,18 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
   const openQuote = useCallback((preset, open = true) => {
     setMenuOpen(false);
     if (preset) {
-      const match = [...document.querySelector("#quote-model").options]
-        .find((option) => option.textContent.toLowerCase().includes(preset.toLowerCase()));
+      const selectEl = document.querySelector("#quote-model");
+      const match = selectEl?.options ? [...selectEl.options]
+        .find((option) => option.textContent.toLowerCase().includes(preset.toLowerCase())) : null;
       setQuoteModel(match ? match.value : preset);
     }
     if (open && !quoteDialogRef.current?.open) quoteDialogRef.current?.showModal();
     else {
-      setEnquiryNote("Enquiry prepared. Your email app should open with the details; send the email there to complete your enquiry. If it doesn't open, contact info@microhomesdirect.com.au.");
+      setEnquiryNote(lang === "zh"
+        ? "询价表单已准备完毕。您的邮件应用将自动打开并填入相关详情；请在邮件客户端中点击发送以完成咨询。如未能自动调起，请发送邮件至 info@microhomesdirect.com.au。"
+        : "Enquiry prepared. Your email app should open with the details; send the email there to complete your enquiry. If it doesn't open, contact info@microhomesdirect.com.au.");
     }
-  }, []);
+  }, [lang]);
 
   function handlePageClick(event) {
     const quoteButton = event.target.closest(".quote-open");
@@ -2038,7 +2279,7 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
 
   return (
     <div className="app-shell" ref={pageRef} onClick={handlePageClick} onPointerMove={handlePointerMove}>
-      <a className="skip-link" href="#top">Skip to content</a>
+      <a className="skip-link" href="#top">{lang === "zh" ? "跳转至正文" : "Skip to content"}</a>
       <SiteMarkup
         page={page}
         product={product}
@@ -2072,6 +2313,8 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
         onQuoteModelChange={setQuoteModel}
         enquiryNote={enquiryNote}
         searchNote={searchNote}
+        lang={lang}
+        onLanguageChange={onLanguageChange}
       />
       {cartOpen && (
         <CartDrawer
@@ -2079,9 +2322,10 @@ function SiteApp({ page, product, cartItems, cartOpen, onCartOpen, onCartClose, 
           onClose={onCartClose}
           onQuantityChange={onCartQuantityChange}
           onRemove={onCartRemove}
+          lang={lang}
         />
       )}
-      <ChatAssistant onQuoteOpen={openQuote} page={page} />
+      <ChatAssistant onQuoteOpen={openQuote} page={page} lang={lang} />
     </div>
   );
 }
@@ -2098,6 +2342,27 @@ function ProductsPageRedirect() {
 }
 
 export default function App() {
+  const [lang, setLang] = useState(() => {
+    try {
+      return localStorage.getItem("mhd_lang") || "en";
+    } catch {
+      return "en";
+    }
+  });
+
+  const handleLanguageChange = useCallback((newLang) => {
+    setLang(newLang);
+    try {
+      localStorage.setItem("mhd_lang", newLang);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en-AU";
+  }, [lang]);
+
   const [cartItems, setCartItems] = useState(loadCartItems);
   const [cartOpen, setCartOpen] = useState(false);
   const openCart = useCallback(() => setCartOpen(true), []);
@@ -2137,17 +2402,17 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<SiteApp page="home" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
-      <Route path="/shop" element={<SiteApp page="shop" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
-      <Route path="/product/:slug" element={<ProductDetailRoute onAddToCart={addToCart} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/" element={<SiteApp page="home" lang={lang} onLanguageChange={handleLanguageChange} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/shop" element={<SiteApp page="shop" lang={lang} onLanguageChange={handleLanguageChange} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/product/:slug" element={<ProductDetailRoute lang={lang} onLanguageChange={handleLanguageChange} onAddToCart={addToCart} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
       <Route path="/products" element={<ProductsPageRedirect />} />
-      <Route path="/about" element={<SiteApp page="about" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
-      <Route path="/finance" element={<SiteApp page="finance" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
-      <Route path="/contact" element={<SiteApp page="contact" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
-      <Route path="/blog" element={<SiteApp page="blog" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
-      <Route path="/blog/cost-guide" element={<SiteApp page="blogGuide" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
-      <Route path="/blog/what-is-a-modular-home" element={<SiteApp page="blogModularHome" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
-      <Route path="/blog/expandable-homes" element={<SiteApp page="blogExpandableHome" cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/about" element={<SiteApp page="about" lang={lang} onLanguageChange={handleLanguageChange} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/finance" element={<SiteApp page="finance" lang={lang} onLanguageChange={handleLanguageChange} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/contact" element={<SiteApp page="contact" lang={lang} onLanguageChange={handleLanguageChange} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/blog" element={<SiteApp page="blog" lang={lang} onLanguageChange={handleLanguageChange} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/blog/cost-guide" element={<SiteApp page="blogGuide" lang={lang} onLanguageChange={handleLanguageChange} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/blog/what-is-a-modular-home" element={<SiteApp page="blogModularHome" lang={lang} onLanguageChange={handleLanguageChange} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
+      <Route path="/blog/expandable-homes" element={<SiteApp page="blogExpandableHome" lang={lang} onLanguageChange={handleLanguageChange} cartItems={cartItems} cartOpen={cartOpen} onCartOpen={openCart} onCartClose={closeCart} onAddToCart={addToCart} onCartQuantityChange={changeCartQuantity} onCartRemove={removeFromCart} />} />
       <Route path="/index.html" element={<Navigate to="/" replace />} />
       <Route path="/shop.html" element={<LegacyPageRedirect />} />
       <Route path="/products.html" element={<ProductsPageRedirect />} />
